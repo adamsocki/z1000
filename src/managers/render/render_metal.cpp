@@ -1,0 +1,8 @@
+
+
+
+
+void InitRender_Metal()
+{
+
+}

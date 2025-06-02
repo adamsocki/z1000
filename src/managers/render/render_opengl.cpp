@@ -1,0 +1,7 @@
+
+
+
+void InitRender_OpenGL()
+{
+	
+}
