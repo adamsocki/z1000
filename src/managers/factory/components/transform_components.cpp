@@ -1,0 +1,7 @@
+//
+// Created by Adam Socki on 6/2/25.
+//
+
+void InitializeComponents(Components* components) {
+
+}

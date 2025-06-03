@@ -138,7 +138,7 @@ struct UniformBufferObject
     };
 
 
-struct data 
+struct Data
 {
     bool vkFramebufferResized;
     VkInstance vkInstance;
@@ -175,6 +175,8 @@ struct data
 
     std::vector<VkSemaphore> vkImageAvailableSemaphores;
     std::vector<VkSemaphore> vkRenderFinishedSemaphores;
+
+
     std::vector<VkFence> vkInFlightFences;
     std::vector<VkFence> vkImagesInFlight;
 

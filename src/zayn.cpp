@@ -20,8 +20,10 @@
 #include "managers/camera.cpp"
 
 #include "managers/render/render.cpp"
+#include "managers/factory/components_factory.cpp"
 #include "managers/factory/entity_factory.cpp"
 
+#include "game/game.cpp"
 
 
 
@@ -45,6 +47,11 @@ void InitZayn(Zayn* zaynMem) {
 
     InitCamera(&zaynMem->camera, zaynMem->windowManager.glfwWindow, &zaynMem->inputManager);
 
+    InitEntityFactory(&zaynMem->entityFactory, zaynMem);
+    InitComponentsFactory(&zaynMem->componentsFactory, &zaynMem->permanentMemory);
+
+    InitGame(zaynMem);
+
     InitRender(zaynMem);
 };
 
@@ -53,10 +60,15 @@ void UpdateZayn(Zayn* zaynMem) {
 
     UpdateTime(zaynMem);
     UpdateInputManager(zaynMem);
-    // UpdateInputManager(zaynMem);
+
     UpdateCamera(&zaynMem->windowManager, &zaynMem->camera, &zaynMem->inputManager, &zaynMem->time);
 
-    // UpdateRenderManager(engine, engine->HTEST, &engine->renderManager, &engine->windowManager, &engine->cameraManager, &engine->inputManager);
+
+    // UpdateComponentsFactory(Z);
+
+
+
+    UpdateRenderer(zaynMem, &zaynMem->renderer, &zaynMem->windowManager, &zaynMem->camera, &zaynMem->inputManager);
 
     
 

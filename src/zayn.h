@@ -11,7 +11,10 @@
 
 #include "managers/camera.h"
 #include "managers/factory/entity_factory.h"
+#include "managers/factory/components_factory.h"
 #include "managers/render/render.h"
+
+#include "game/game.h"
 
 struct Zayn {
 
@@ -22,8 +25,22 @@ struct Zayn {
 
     MemoryArena frameMemory;
     MemoryArena permanentMemory;
-    
+
+    ComponentsFactory componentsFactory;
     EntityFactory entityFactory;
 
+
+    GameData gameData;
+
     Renderer renderer;
+
+
+
+    EntityTypeInfoForBuffer entityTypeInfoForBuffer[EntityType_Count];
+        // {EntityType_Player, sizeof(int32), 10, "Player"}
+        // {EntityType_Floor, sizeof(FloorEntity), 10000, "Floor"},
+
+        // {EntityType_Piano, sizeof(GrandPianoEntity), 10, "Grand Piano"}
+
+
 };

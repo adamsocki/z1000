@@ -17,7 +17,7 @@ struct Renderer
 {
 
 	#if VULKAN
-	data data;
+	Data data;
 	#endif
 
 };

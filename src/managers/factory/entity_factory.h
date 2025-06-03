@@ -5,17 +5,19 @@ enum EntityType
     EntityType_Player,
         EntityType_Floor,
         EntityType_Piano,
+        EntityType_Wall,
         EntityType_Count
     };
 
 
-    struct EntityTypeInfoForBuffer
+struct EntityTypeInfoForBuffer
     {
         EntityType type;
         int32 structSize;
         int32 defaultCapacity;
         const char* typeName;
     };
+
 
 struct FreeList {
         int32 freeList[1000];
@@ -60,14 +62,14 @@ struct EntityInfo {
 
 struct EntityFactory
 {
-EntityTypeBuffer buffers[EntityType_Count];
-        EntityInfo *entities;
-        int32 entityCapacity;
+    EntityTypeBuffer buffers[EntityType_Count];
+    EntityInfo *entities;
+    int32 entityCapacity;
 
-        int32 freeListCount;
-        int32 freeList[10000];
+    int32 freeListCount;
+    int32 freeList[10000];
 
 //        FreeList levelIDtest[10];
 
-        int32 nextID;
+    int32 nextID;
 };

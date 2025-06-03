@@ -1541,9 +1541,11 @@ void CreateCommandBuffers(Renderer* renderer)
 void CreateSyncObjects(Renderer* renderer)
 {
     renderer->data.vkImageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-    renderer->data.vkRenderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    size_t imageCount = renderer->data.vkSwapChainImages.size();
+    renderer->data.vkRenderFinishedSemaphores.resize(imageCount);
+
     renderer->data.vkInFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-    renderer->data.vkImagesInFlight.resize(renderer->data.vkSwapChainImages.size(), VK_NULL_HANDLE);
+    renderer->data.vkImagesInFlight.resize(imageCount, VK_NULL_HANDLE);
 
     VkSemaphoreCreateInfo semaphoreInfo{};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -1553,15 +1555,27 @@ void CreateSyncObjects(Renderer* renderer)
     fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
 
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-    {
-        if (vkCreateSemaphore(renderer->data.vkDevice, &semaphoreInfo, nullptr, &renderer->data.vkImageAvailableSemaphores[i]) != VK_SUCCESS ||
-            vkCreateSemaphore(renderer->data.vkDevice, &semaphoreInfo, nullptr, &renderer->data.vkRenderFinishedSemaphores[i]) != VK_SUCCESS ||
-            vkCreateFence(renderer->data.vkDevice, &fenceInfo, nullptr, &renderer->data.vkInFlightFences[i]) != VK_SUCCESS)
-        {
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        if (vkCreateSemaphore(renderer->data.vkDevice, &semaphoreInfo, nullptr,
+                             &renderer->data.vkImageAvailableSemaphores[i]) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create image available semaphores!");
+                             }
+    }
 
-            throw std::runtime_error("failed to create synchronization objects for a frame!");
-        }
+    // Create in-flight fences
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+        if (vkCreateFence(renderer->data.vkDevice, &fenceInfo, nullptr,
+                         &renderer->data.vkInFlightFences[i]) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create in-flight fences!");
+                         }
+    }
+
+    // Existing render finished semaphore creation
+    for (size_t i = 0; i < renderer->data.vkSwapChainImages.size(); i++) {
+        if (vkCreateSemaphore(renderer->data.vkDevice, &semaphoreInfo, nullptr,
+                             &renderer->data.vkRenderFinishedSemaphores[i]) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create render finished semaphores!");
+                             }
     }
 }
 
@@ -1674,7 +1688,7 @@ bool BeginFrameRender(Renderer* renderer, WindowManager* windowManager)
 
     // vkResetFences(Zayn->vkDevice, 1, &Zayn->vkInFlightFences[Zayn->vkCurrentFrame]);
     // vkResetCommandBuffer(Zayn->vkCommandBuffers[Zayn->vkCurrentFrame], /*VkCommandBufferResetFlagBits*/ 0);
-
+    vkResetFences(renderer->data.vkDevice, 1, &renderer->data.vkInFlightFences[renderer->data.vkCurrentFrame]);
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     if (vkBeginCommandBuffer(renderer->data.vkCommandBuffers[renderer->data.vkCurrentFrame], &beginInfo) != VK_SUCCESS)
@@ -1827,36 +1841,39 @@ void BeginSwapChainRenderPass(Renderer* renderer, VkCommandBuffer commandBuffer)
 
 void RenderEntities(Zayn* zaynMem, VkCommandBuffer commandBuffer)
 {
-    //uint32_t dynamicOffset = zaynMem->vulkan.vkCurrentFrame * sizeof(UniformBufferObject);
+    // uint32_t dynamicOffset = zaynMem->renderer.data.vkCurrentFrame * sizeof(UniformBufferObject);
     // PlayerEntity* playerEntity = (PlayerEntity*)GetEntity(&zaynMem->entityFactory, engine->HTEST);
 
+    EntityFactory* entityFactory = &zaynMem->entityFactory;
+    ComponentsFactory * componentfactory = &zaynMem->componentsFactory;
 
+    // for (int i = 0; i < storage->renderComponents.count; i++)
 
-    // for (int i = 0; i < 1; i++)
-    // {
-    //    // GameObject& gameObj = zaynMem->gameObjects[i];
-    //     VkDescriptorSet& set = playerEntity->material->descriptorSets[engine->renderer.data.vkCurrentFrame];
-
-    //     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, engine->renderer.data.vkGraphicsPipeline);
-    //     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, engine->renderer.data.vkPipelineLayout, 0, 1, &set, 0, nullptr);
-
-
-    //     // Push constants for the transform
-    //     /* ModelPushConstant pushConstant = {};
-    //      pushConstant.model_1 = TRS((V3(0.0f, 1.0f, -1.0f)), AxisAngle(V3(0.0f, 0.2f, 0.20f), 0.0f), V3(1.0f, 1.0f, 1.0f));*/
-
-    //     vkCmdPushConstants(commandBuffer, engine->renderer.data.vkPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(ModelPushConstant), &playerEntity->pushConstantData);
-
-    //     // Bind the vertex and index buffers
-    //     VkBuffer vertexBuffers[] = { playerEntity->mesh->vertexBuffer };
-    //     VkDeviceSize offsets[] = { 0 };
-    //     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-
-    //     vkCmdBindIndexBuffer(commandBuffer, playerEntity->mesh->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-    //     // Draw the mesh
-    //     vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(playerEntity->mesh->indices.size()), 1, 0, 0, 0);
-    // }
+    // for (int i = 0; i < zaynMem->entityFactory.entities.count; i++)
+    {
+       // // GameObject& gameObj = zaynMem->gameObjects[i];
+       //  // VkDescriptorSet& set = playerEntity->material->descriptorSets[zaynMem->renderer.data.vkCurrentFrame];
+       //
+       //  vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, zaynMem->renderer.data.vkGraphicsPipeline);
+       //  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, zaynMem->renderer.data.vkPipelineLayout, 0, 1, &set, 0, nullptr);
+       //
+       //
+       //  // Push constants for the transform
+       //  /* ModelPushConstant pushConstant = {};
+       //   pushConstant.model_1 = TRS((V3(0.0f, 1.0f, -1.0f)), AxisAngle(V3(0.0f, 0.2f, 0.20f), 0.0f), V3(1.0f, 1.0f, 1.0f));*/
+       //
+       //  vkCmdPushConstants(commandBuffer, zaynMem->renderer.data.vkPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(ModelPushConstant), &playerEntity->pushConstantData);
+       //
+       //  // Bind the vertex and index buffers
+       //  VkBuffer vertexBuffers[] = { playerEntity->mesh->vertexBuffer };
+       //  VkDeviceSize offsets[] = { 0 };
+       //  vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+       //
+       //  vkCmdBindIndexBuffer(commandBuffer, playerEntity->mesh->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+       //
+       //  // Draw the mesh
+       //  vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(playerEntity->mesh->indices.size()), 1, 0, 0, 0);
+    }
 }
 
 void EndSwapChainRenderPass(Renderer* renderer, VkCommandBuffer commandBuffer)
@@ -1888,7 +1905,7 @@ VkResult SubmitCommandBuffers(Renderer* renderer, std::vector<VkCommandBuffer> b
     // submitInfo.commandBufferCount
     submitInfo.pCommandBuffers = buffers.data();
 
-    VkSemaphore signalSemaphores[] = { renderer->data.vkRenderFinishedSemaphores[renderer->data.vkCurrentFrame] };
+    VkSemaphore signalSemaphores[] = { renderer->data.vkRenderFinishedSemaphores[*imageIndex] };
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
@@ -1950,7 +1967,7 @@ void EndFrameRender(Renderer* renderer, WindowManager* windowManager)
     renderer->data.vkIsFrameStarted = false;
 }
 
-void Updaterenderer(Zayn* zaynMem, EntityHandle handle, Renderer* renderer, WindowManager* windowManager, Camera* camera, InputManager* inputManager)
+void UpdateRenderer(Zayn* zaynMem, Renderer* renderer, WindowManager* windowManager, Camera* camera, InputManager* inputManager)
 {
     if (BeginFrameRender(renderer, windowManager))
     {
