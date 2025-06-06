@@ -9,7 +9,7 @@ enum MaterialType
 };
 
 struct Texture {
-    
+
 };
 
 struct Material {
