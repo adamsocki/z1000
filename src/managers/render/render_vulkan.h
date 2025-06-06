@@ -111,6 +111,46 @@ struct Vertex {
             return pos == other.pos && color == other.color && texCoord == other.texCoord;
         }
     };
+namespace std {
+    // Hash function for glm::vec2
+    template<>
+    struct hash<glm::vec2> {
+        size_t operator()(const glm::vec2& v) const {
+            size_t h1 = hash<float>{}(v.x);
+            size_t h2 = hash<float>{}(v.y);
+            return h1 ^ (h2 << 1);
+        }
+    };
+
+    // Hash function for glm::vec3
+    template<>
+    struct hash<glm::vec3> {
+        size_t operator()(const glm::vec3& v) const {
+            size_t h1 = hash<float>{}(v.x);
+            size_t h2 = hash<float>{}(v.y);
+            size_t h3 = hash<float>{}(v.z);
+            return h1 ^ (h2 << 1) ^ (h3 << 2);
+        }
+    };
+
+    // Hash function for Vertex
+    template<>
+    struct hash<Vertex> {
+        size_t operator()(const Vertex& vertex) const {
+            size_t h1 = hash<glm::vec3>{}(vertex.pos);
+            size_t h2 = hash<glm::vec3>{}(vertex.color);
+            size_t h3 = hash<glm::vec2>{}(vertex.texCoord);
+            size_t h4 = hash<glm::vec3>{}(vertex.normal);
+
+            return h1 ^ (h2 << 1) ^ (h3 << 2) ^ (h4 << 3);
+        }
+    };
+}
+
+
+
+
+
 struct QueueFamilyIndices {
 	std::optional<uint32_t> graphicsFamily;
 	std::optional<uint32_t> presentFamily;

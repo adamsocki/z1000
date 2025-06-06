@@ -7,9 +7,11 @@
 
 #include <iostream>
 
+#define PROJECT_DIR_MAC "/Users/adamsocki/dev/clion/z1000/"
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#include <tiny_obj_loader.h>
 #include <vulkan/vulkan.h>
 #include <optional>
 #include <vector>

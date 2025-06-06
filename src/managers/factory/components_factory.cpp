@@ -18,6 +18,7 @@ void InitComponentsFactory(ComponentsFactory* factory, MemoryArena* arena) {
 
 
 
+
 void UpdateComponentsFactory(Components* components) {
 
 }

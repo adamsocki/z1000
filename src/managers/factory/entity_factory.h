@@ -72,4 +72,6 @@ struct EntityFactory
 //        FreeList levelIDtest[10];
 
     int32 nextID;
+
+    DynamicArray<EntityHandle> activeEntityHandles;
 };

@@ -1849,8 +1849,36 @@ void RenderEntities(Zayn* zaynMem, VkCommandBuffer commandBuffer)
 
     // for (int i = 0; i < storage->renderComponents.count; i++)
 
-    // for (int i = 0; i < zaynMem->entityFactory.entities.count; i++)
+    for (int i = 0; i < entityFactory->activeEntityHandles.count; i++) {
+        EntityHandle* entityHandle = &entityFactory->activeEntityHandles[i];
+        // // GameObject& gameObj = zaynMem->gameObjects[i];
+        // VkDescriptorSet& set = playerEntity->material->descriptorSets[zaynMem->renderer.data.vkCurrentFrame];
+
+
+        // vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, zaynMem->renderer.data.vkGraphicsPipeline);
+        // vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, zaynMem->renderer.data.vkPipelineLayout, 0, 1, &set, 0, nullptr);
+        //
+        //
+        //  // Push constants for the transform
+        //  /* ModelPushConstant pushConstant = {};
+        // pushConstant.model_1 = TRS((V3(0.0f, 1.0f, -1.0f)), AxisAngle(V3(0.0f, 0.2f, 0.20f), 0.0f), V3(1.0f, 1.0f, 1.0f));
+        //
+        //  vkCmdPushConstants(commandBuffer, zaynMem->renderer.data.vkPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(ModelPushConstant), &playerEntity->pushConstantData);
+        //
+        //  // Bind the vertex and index buffers
+        //  VkBuffer vertexBuffers[] = { playerEntity->mesh->vertexBuffer };
+        //  VkDeviceSize offsets[] = { 0 };
+        //  vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+        //
+        //  vkCmdBindIndexBuffer(commandBuffer, playerEntity->mesh->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        //
+        //  // Draw the mesh
+        //  vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(playerEntity->mesh->indices.size()), 1, 0, 0, 0);
+    }
+
+    for (int i = 0; i < componentfactory->componentsStorage.meshComponents.count; i++)
     {
+        // EntityHandle* meshEntity
        // // GameObject& gameObj = zaynMem->gameObjects[i];
        //  // VkDescriptorSet& set = playerEntity->material->descriptorSets[zaynMem->renderer.data.vkCurrentFrame];
        //

@@ -10,9 +10,11 @@
 #include "managers/input.h"
 
 #include "managers/camera.h"
+#include "managers/render/render.h"
 #include "managers/factory/entity_factory.h"
 #include "managers/factory/components_factory.h"
-#include "managers/render/render.h"
+#include "managers/factory/mesh_factory.h"
+#include "managers/factory/material_factory.h"
 
 #include "game/game.h"
 
@@ -28,6 +30,8 @@ struct Zayn {
 
     ComponentsFactory componentsFactory;
     EntityFactory entityFactory;
+    MeshFactory meshFactory;
+    MaterialFactory materialFactory;
 
 
     GameData gameData;

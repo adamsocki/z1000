@@ -19,8 +19,11 @@
 #include "managers/input.cpp"
 #include "managers/camera.cpp"
 
+
 #include "managers/render/render.cpp"
 #include "managers/factory/components_factory.cpp"
+#include "managers/factory/mesh_factory.cpp"
+#include "managers/factory/material_factory.cpp"
 #include "managers/factory/entity_factory.cpp"
 
 #include "game/game.cpp"
@@ -47,12 +50,14 @@ void InitZayn(Zayn* zaynMem) {
 
     InitCamera(&zaynMem->camera, zaynMem->windowManager.glfwWindow, &zaynMem->inputManager);
 
+    InitMeshFactory(&zaynMem->meshFactory, &zaynMem->permanentMemory);
+
     InitEntityFactory(&zaynMem->entityFactory, zaynMem);
     InitComponentsFactory(&zaynMem->componentsFactory, &zaynMem->permanentMemory);
 
+    InitRender(zaynMem);
     InitGame(zaynMem);
 
-    InitRender(zaynMem);
 };
 
 

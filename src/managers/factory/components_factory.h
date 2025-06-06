@@ -23,6 +23,26 @@ template<typename T>
 
     return &(*componentArray)[index];
 }
+inline bool AreHandlesEqual(EntityHandle h1, EntityHandle h2) {
+    return h1.indexInInfo == h2.indexInInfo &&
+           h1.generation == h2.generation &&
+           h1.type == h2.type;
+}
+
+template<typename T>
+    inline T* FindComponentsInArray(DynamicArray<T>* componentArray, EntityHandle entityHandle) {
+    if (!componentArray) {
+        return nullptr;
+    }
+    for (uint32 i = 0; i < componentArray->count; ++i) {
+        // Compare the owner handle of the component in the array with the target handle
+        if (AreHandlesEqual((*componentArray)[i].owner, entityHandle)) {
+            // Found it, return pointer to the data in the array
+            return &(*componentArray)[i];
+        }
+    }
+    return nullptr; // Not found
+}
 
 struct ComponentsStorage {
     DynamicArray<TransformComponents>   transformComponents;
