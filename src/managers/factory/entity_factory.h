@@ -10,6 +10,8 @@ enum EntityType
     };
 
 
+
+
 struct EntityTypeInfoForBuffer
     {
         EntityType type;
@@ -58,6 +60,16 @@ struct EntityInfo {
 
         void* entities;
     };
+
+
+
+
+struct Entity {
+    // std::string name;
+    // EntityType type;
+    EntityHandle handle;
+};
+
 
 
 struct EntityFactory

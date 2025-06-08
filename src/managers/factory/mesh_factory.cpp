@@ -2,6 +2,11 @@
 // Created by Adam Socki on 6/4/25.
 //
 
+#include <stdio.h>
+#include <stdlib.h>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "../../include/stb_image.h"
 
 struct MeshCreationInfo
 {
@@ -9,6 +14,37 @@ struct MeshCreationInfo
     std::string name;
 
 };
+
+std::string GetTexturePath(const std::string& filename) {
+    std::string relativePath = "../src/render/textures/" + filename;
+
+    std::ifstream testFile(relativePath);
+    if (testFile.good()) {
+        testFile.close();
+        return relativePath;
+    }
+
+#ifdef WIN32
+    // Try Windows-specific paths
+    std::string winPath = std::string(PROJECT_DIR_PC) + "src/render/models/" + filename;
+    testFile.open(winPath);
+    if (testFile.good()) {
+        testFile.close();
+        return winPath;
+    }
+#elif __APPLE__
+    // Try Mac-specific paths
+    std::string macPath = std::string(PROJECT_DIR_MAC) + "src/managers/render/textures/" + filename;      // project directoryx1
+    testFile.open(macPath);
+    if (testFile.good()) {
+        testFile.close();
+        return macPath;
+    }
+#endif
+
+    printf("Warning: Unable to find model file: %s, falling back to relative path\n", filename.c_str());
+    return relativePath;
+}
 
 std::string GetModelPath(const std::string& filename) {
     std::string relativePath = "../src/render/models/" + filename;
@@ -42,55 +78,55 @@ std::string GetModelPath(const std::string& filename) {
 }
 
 void CreateIndexBuffer(Renderer* renderer, std::vector<uint32_t> indices, VkBuffer* indexBuffer, VkDeviceMemory* indexBufferMemory)
+{
+    if (indices.empty())
     {
-        if (indices.empty())
-        {
-            return;
-        }
-        VkDeviceSize bufferSize = sizeof(uint32_t) * indices.size();
+        return;
+    }
+    VkDeviceSize bufferSize = sizeof(uint32_t) * indices.size();
 
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
-        CreateBuffer(renderer, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    CreateBuffer(renderer, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
-        void* data;
-        vkMapMemory(renderer->data.vkDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, indices.data(), (size_t)bufferSize);
-        vkUnmapMemory(renderer->data.vkDevice, stagingBufferMemory);
+    void* data;
+    vkMapMemory(renderer->data.vkDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data, indices.data(), (size_t)bufferSize);
+    vkUnmapMemory(renderer->data.vkDevice, stagingBufferMemory);
 
-        CreateBuffer(renderer, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, *indexBuffer, *indexBufferMemory);
+    CreateBuffer(renderer, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, *indexBuffer, *indexBufferMemory);
 
-        CopyBuffer(renderer, stagingBuffer, *indexBuffer, bufferSize);
+    CopyBuffer(renderer, stagingBuffer, *indexBuffer, bufferSize);
 
-        vkDestroyBuffer(renderer->data.vkDevice, stagingBuffer, nullptr);
-        vkFreeMemory(renderer->data.vkDevice, stagingBufferMemory, nullptr);
+    vkDestroyBuffer(renderer->data.vkDevice, stagingBuffer, nullptr);
+    vkFreeMemory(renderer->data.vkDevice, stagingBufferMemory, nullptr);
+}
+
+void CreateVertexBuffer(Renderer* renderer, std::vector<Vertex>& vertices, VkBuffer* vertexBuffer, VkDeviceMemory* vertexBufferMemory)
+{
+    if (vertices.empty())
+    {
+        return;
     }
 
-    void CreateVertexBuffer(Renderer* renderer, std::vector<Vertex>& vertices, VkBuffer* vertexBuffer, VkDeviceMemory* vertexBufferMemory)
-    {
-        if (vertices.empty())
-        {
-            return;
-        }
+    VkDeviceSize bufferSize = sizeof(Vertex) * vertices.size();
+    // STAGING BUFFER - CPU accessible memory to upload the data from the vertex array to.
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    CreateBuffer(renderer, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
-        VkDeviceSize bufferSize = sizeof(Vertex) * vertices.size();
-        // STAGING BUFFER - CPU accessible memory to upload the data from the vertex array to.
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
-        CreateBuffer(renderer, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+    void* data;
+    vkMapMemory(renderer->data.vkDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data, vertices.data(), (size_t)bufferSize);
+    vkUnmapMemory(renderer->data.vkDevice, stagingBufferMemory);
 
-        void* data;
-        vkMapMemory(renderer->data.vkDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, vertices.data(), (size_t)bufferSize);
-        vkUnmapMemory(renderer->data.vkDevice, stagingBufferMemory);
+    CreateBuffer(renderer, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, *vertexBuffer, *vertexBufferMemory);
 
-        CreateBuffer(renderer, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, *vertexBuffer, *vertexBufferMemory);
+    CopyBuffer(renderer,stagingBuffer, *vertexBuffer, bufferSize);
 
-        CopyBuffer(renderer,stagingBuffer, *vertexBuffer, bufferSize);
-
-        vkDestroyBuffer(renderer->data.vkDevice, stagingBuffer, nullptr);
-        vkFreeMemory(renderer->data.vkDevice, stagingBufferMemory, nullptr);
-    }
+    vkDestroyBuffer(renderer->data.vkDevice, stagingBuffer, nullptr);
+    vkFreeMemory(renderer->data.vkDevice, stagingBufferMemory, nullptr);
+}
 
 void LoadModel(std::string modelPath, std::vector<Vertex>* vertices, std::vector<uint32_t>* indices) {
     tinyobj::attrib_t attrib;

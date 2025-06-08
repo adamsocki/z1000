@@ -8,8 +8,15 @@ enum MaterialType
     MATERIAL_UNLIT
 };
 
-struct Texture {
 
+
+struct MaterialCreateInfo {
+    MaterialType type = MATERIAL_PBR;
+    Texture* texture;
+    std::string name;
+    float color[4];
+    float roughness;
+    float metallic;
 };
 
 struct Material {
@@ -22,7 +29,6 @@ struct Material {
     // float roughness;
     bool isInitialized = false;
 };
-
 
 struct MaterialFactory
 {

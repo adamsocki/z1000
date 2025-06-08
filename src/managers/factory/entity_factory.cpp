@@ -10,6 +10,24 @@ void InitEntityTypeInfo( Zayn* zaynMem) {
 
 	memcpy(zaynMem->entityTypeInfoForBuffer, defaultEntityTypeInfo, sizeof(defaultEntityTypeInfo));
 }
+void* GetEntity(EntityFactory* entityFactory, EntityHandle handle) {
+	if (handle.indexInInfo >= entityFactory->entityCapacity) {
+		return NULL;
+	}
+
+	EntityInfo* info = &entityFactory->entities[handle.indexInInfo];
+
+	if (info->generation != handle.generation) {
+		return NULL;
+	}
+	if (info->type != handle.type) {
+		return NULL;
+	}
+
+	EntityTypeBuffer* buffer = &entityFactory->buffers[info->type];
+
+	return ((u8*)buffer->entities + (buffer->sizeInBytes * info->indexInBuffer));
+}
 
 
 void InitEntityFactory(EntityFactory* entityFactory, Zayn* zaynMem) {
@@ -22,6 +40,7 @@ void InitEntityFactory(EntityFactory* entityFactory, Zayn* zaynMem) {
 	memset(entityFactory->entities, 0, sizeof(EntityInfo) * entityFactory->entityCapacity);
 	entityFactory->nextID = 0;
 
+	entityFactory->activeEntityHandles = MakeDynamicArray<EntityHandle>(&zaynMem->permanentMemory, 5000);
 	// InitEntityBuffers(entityFactory, zaynMem);
 }
 EntityHandle AddEntity(EntityFactory* entityFactory, EntityType type) {

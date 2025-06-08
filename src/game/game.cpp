@@ -33,10 +33,26 @@ void InitGame(Zayn *zaynMem) {
 
     PushBack(&zaynMem->entityFactory.activeEntityHandles, wall_1);
 
+    TextureCreateInfo texture1;
+    texture1.path = "viking_room.png";
+    texture1.name = "hi";
+    MakeTexture(zaynMem, &texture1);
     // add to active entity list
+    MaterialCreateInfo material1;
+    material1.type = MATERIAL_PBR;
+    material1.texture = &zaynMem->textureFactory.textures[0];
+    material1.name = "mat1";
+    AddComponents(&zaynMem->componentsFactory.componentsStorage.materialComponents, wall_1);
+    MaterialComponents* matComp = FindComponentsInArray(&zaynMem->componentsFactory.componentsStorage.materialComponents, wall_1);
+
+    // EntityHandle newEntityHandle = {};
+    // AddEntity(&zaynMem->entityFactory, &newEntityHandle, entityCreator.selectedEntityType);
+
+    Entity* entity = static_cast<Entity*>(GetEntity(&zaynMem->entityFactory, wall_1));
 
 
+    // entity->name = "default";
 
-
+    // entity->material = &engine->materialFactory.materials[0];
 
 }
