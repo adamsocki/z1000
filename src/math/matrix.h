@@ -582,6 +582,13 @@ inline mat4 Rotation4(quaternion q) {
     return result;
 }
 
+// Rotation matrix from Euler angles (in degrees)
+inline mat4 Rotation4(vec3 eulerDegrees) {
+    vec3 eulerRadians = V3(ToRadians(eulerDegrees.x), ToRadians(eulerDegrees.y), ToRadians(eulerDegrees.z));
+    quaternion q = FromEulerAngles(eulerRadians);
+    return Rotation4(q);
+}
+
 inline mat4 Scale4(real32 scale) {
     mat4 result = { scale, 0.0f, 0.0f, 0.0f,
                    0.0f, scale, 0.0f, 0.0f,
@@ -665,6 +672,31 @@ inline mat4 TRS(vec3 translation, mat4 rotation, real32 scale) {
 }
 
 inline mat4 TRS(vec3 translation, quaternion rotation, real32 scale) {
+    mat4 result = Rotation4(rotation) * Scale4(scale);
+
+    result.columns[3].x = translation.x;
+    result.columns[3].y = translation.y;
+    result.columns[3].z = translation.z;
+
+    return result;
+}
+
+inline mat4 TRS(vec3 translation, vec3 eulerDegrees, vec3 scale) {
+    vec3 eulerRadians = V3(ToRadians(eulerDegrees.x), ToRadians(eulerDegrees.y), ToRadians(eulerDegrees.z));
+    quaternion rotation = FromEulerAngles(eulerRadians);
+    mat4 result = Rotation4(rotation) * Scale4(scale);
+
+    result.columns[3].x = translation.x;
+    result.columns[3].y = translation.y;
+    result.columns[3].z = translation.z;
+
+    return result;
+}
+
+// TRS with Euler angles (in degrees) and uniform scale
+inline mat4 TRS(vec3 translation, vec3 eulerDegrees, real32 scale) {
+    vec3 eulerRadians = V3(ToRadians(eulerDegrees.x), ToRadians(eulerDegrees.y), ToRadians(eulerDegrees.z));
+    quaternion rotation = FromEulerAngles(eulerRadians);
     mat4 result = Rotation4(rotation) * Scale4(scale);
 
     result.columns[3].x = translation.x;

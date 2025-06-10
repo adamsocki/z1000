@@ -1,4 +1,3 @@
-
 #include <optional>
 #include <vector>
 #include <array>
@@ -1370,12 +1369,12 @@ void  CreateGraphicsPipeline(Renderer* renderer, VkPipeline* pipeline, const std
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
-    auto bindingDescription = Vertex::getBindingDescription();
-    auto attributeDescriptions = Vertex::getAttributeDescriptions();
+    auto bindingDescriptions = Vertex::getBindingDescriptions_instanced();
+    auto attributeDescriptions = Vertex::getAttributeDescriptions_instanced();
 
-    vertexInputInfo.vertexBindingDescriptionCount = 1;
+    vertexInputInfo.vertexBindingDescriptionCount = static_cast<uint32_t>(bindingDescriptions.size());
     vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+    vertexInputInfo.pVertexBindingDescriptions = bindingDescriptions.data();;
     vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
@@ -1445,12 +1444,8 @@ void  CreateGraphicsPipeline(Renderer* renderer, VkPipeline* pipeline, const std
     pipelineLayoutInfo.setLayoutCount = 1;
     pipelineLayoutInfo.pSetLayouts = descriptorSetLayout;
 
-    VkPushConstantRange pushConstantRange = {};
-    pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-    pushConstantRange.offset = 0;
-    pushConstantRange.size = sizeof(ModelPushConstant);
-    pipelineLayoutInfo.pushConstantRangeCount = 1;
-    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+    pipelineLayoutInfo.pushConstantRangeCount = 0;
+    pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
     if (vkCreatePipelineLayout(renderer->data.vkDevice, &pipelineLayoutInfo, nullptr, pipelineLayout) != VK_SUCCESS)
     {
@@ -1839,46 +1834,141 @@ void BeginSwapChainRenderPass(Renderer* renderer, VkCommandBuffer commandBuffer)
 //     }
 // }
 
-void RenderEntities(Zayn* zaynMem, VkCommandBuffer commandBuffer)
-{
-    // uint32_t dynamicOffset = zaynMem->renderer.data.vkCurrentFrame * sizeof(UniformBufferObject);
-    // PlayerEntity* playerEntity = (PlayerEntity*)GetEntity(&zaynMem->entityFactory, engine->HTEST);
+void UpdateInstanceBuffer(Mesh* mesh) {
+    if (!mesh->instanceDataRequiresGpuUpdate || mesh->instanceCount == 0) return;
 
-    EntityFactory* entityFactory = &zaynMem->entityFactory;
-    ComponentsFactory * componentfactory = &zaynMem->componentsFactory;
+    std::cout << "Updating instance buffer with " << mesh->instanceCount << " instances" << std::endl;
 
-    // for (int i = 0; i < storage->renderComponents.count; i++)
+    // Copy data from DynamicArray to mapped buffer
+    for (uint32 i = 0; i < mesh->instanceCount; i++) {
+        ((InstancedData*)mesh->instanceBufferMapped)[i] = mesh->instanceData[i];
+    }
 
-    for (int i = 0; i < zaynMem->gameData.walls.count; i++) {
-        EntityHandle* entityHandle = &zaynMem->gameData.walls[i];
-        WallEntity* wall_entity = (WallEntity*)GetEntity(&zaynMem->entityFactory, *entityHandle);
-        VkDescriptorSet& set = wall_entity->material->descriptorSets[zaynMem->renderer.data.vkCurrentFrame];
+    mesh->instanceDataRequiresGpuUpdate = false;
+}
 
+void RenderMeshInstanced(VkCommandBuffer commandBuffer, Mesh* mesh, VkDescriptorSet descriptorSet, VkPipelineLayout pipelineLayout) {
+    if (mesh->instanceCount == 0) return;
+
+    UpdateInstanceBuffer(mesh);
+
+    VkBuffer vertexBuffers[] = { mesh->vertexBuffer, mesh->instanceBuffer };
+    VkDeviceSize offsets[] = { 0, 0 };
+    vkCmdBindVertexBuffers(commandBuffer, 0, 2, vertexBuffers, offsets);
+    vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+    std::cout << "Drawing " << mesh->indices.size() << " indices with " << mesh->instanceCount << " instances" << std::endl;
+    vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh->indices.size()), mesh->instanceCount, 0, 0, 0);
+}
+
+void ClearMeshInstances(Mesh* mesh) {
+    mesh->instanceCount = 0;
+    mesh->instanceData.count = 0;
+    mesh->registeredEntities.count = 0;
+    mesh->instanceDataRequiresGpuUpdate = true;
+}
+
+void AddMeshInstance(Mesh* mesh, EntityHandle entityHandle, mat4 modelMatrix) {
+    if (mesh->instanceCount >= mesh->maxInstances) {
+        std::cout << "ERROR: Mesh instance limit reached!" << std::endl;
+        return;
+    }
+
+    InstancedData instanceData = {};
+    instanceData.modelMatrix = modelMatrix;
+
+    PushBack(&mesh->instanceData, instanceData);
+    PushBack(&mesh->registeredEntities, entityHandle);
+    mesh->instanceCount++;
+    mesh->instanceDataRequiresGpuUpdate = true;
+
+    std::cout << "Added mesh instance. Total instances: " << mesh->instanceCount << std::endl;
+}
+
+
+void RenderInstancedMeshes(Zayn* zaynMem, VkCommandBuffer commandBuffer) {
+    std::cout << "RenderInstancedMeshes: Total meshes: " << zaynMem->meshFactory.meshes.count << std::endl;
+
+    // Render all meshes that have instances
+    for (int i = 0; i < zaynMem->meshFactory.meshes.count; i++) {
+        Mesh* mesh = &zaynMem->meshFactory.meshes[i];
+        std::cout << "Mesh " << i << " has " << mesh->instanceCount << " instances" << std::endl;
+
+        if (mesh->instanceCount == 0) continue;
+
+        // For now, use the first entity's material - in a real system you'd group by material
+        EntityHandle firstEntity = mesh->registeredEntities[0];
+        uint32_t frameIndex = zaynMem->renderer.data.vkCurrentFrame % MAX_FRAMES_IN_FLIGHT;
+
+        Material* material = nullptr;
+        if (firstEntity.type == EntityType_Wall) {
+            WallEntity* wallEntity = (WallEntity*)GetEntity(&zaynMem->entityFactory, firstEntity);
+            material = wallEntity->material;
+        }
+        // else if (firstEntity.type == EntityType_Terrain) {
+        //     TerrainEntity* terrainEntity = (TerrainEntity*)GetEntity(&zaynMem->entityFactory, firstEntity);
+        //     material = terrainEntity->material;
+        // }
+        //
+        if (!material) continue;
+        VkDescriptorSet& set = material->descriptorSets[frameIndex];
+
+        std::cout << "Rendering mesh with " << mesh->instanceCount << " instances" << std::endl;
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, zaynMem->renderer.data.vkGraphicsPipeline);
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, zaynMem->renderer.data.vkPipelineLayout, 0, 1, &set, 0, nullptr);
 
+        RenderMeshInstanced(commandBuffer, mesh, set, zaynMem->renderer.data.vkPipelineLayout);
+    }
+}
 
-        // Push constants for the transform
-           ModelPushConstant pushConstant = {};
-           pushConstant.model_1 = TRS((V3(0.0f, 1.0f, 0.0f)), AxisAngle(V3(0.0f, 0.0f, 90.00f), 2.0f), V3(1.0f, 1.0f, 1.0f));
+// void RenderEntities(Zayn* zaynMem, VkCommandBuffer commandBuffer)
+// {
+//     // uint32_t dynamicOffset = zaynMem->renderer.data.vkCurrentFrame * sizeof(UniformBufferObject);
+//     // PlayerEntity* playerEntity = (PlayerEntity*)GetEntity(&zaynMem->entityFactory, engine->HTEST);
+//
+//     EntityFactory* entityFactory = &zaynMem->entityFactory;
+//     ComponentsFactory * componentfactory = &zaynMem->componentsFactory;
+//
+//     // for (int i = 0; i < storage->renderComponents.count; i++)
+//
+//     for (int i = 0; i < zaynMem->gameData.walls.count; i++) {
+//         EntityHandle* entityHandle = &zaynMem->gameData.walls[i];
+//         WallEntity* wall_entity = (WallEntity*)GetEntity(&zaynMem->entityFactory, *entityHandle);
+//         VkDescriptorSet& set = wall_entity->material->descriptorSets[zaynMem->renderer.data.vkCurrentFrame];
+//
+//
+//         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, zaynMem->renderer.data.vkGraphicsPipeline);
+//         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, zaynMem->renderer.data.vkPipelineLayout, 0, 1, &set, 0, nullptr);
+//
+//
+//         // Push constants for the transform
+//            ModelPushConstant pushConstant = {};
+//            pushConstant.model_1 = TRS((V3(0.0f, 1.0f, 0.0f)), AxisAngle(V3(0.0f, 0.0f, 90.00f), 2.0f), V3(1.0f, 1.0f, 1.0f));
+//
+//            // vkCmdPushConstants(commandBuffer, zaynMem->renderer.data.vkPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(ModelPushConstant), &wall_entity->pushConstantData);
+//            vkCmdPushConstants(commandBuffer, zaynMem->renderer.data.vkPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(ModelPushConstant), &pushConstant);
+//
+//            // Bind the vertex and index buffers
+//            VkBuffer vertexBuffers[] = { wall_entity->mesh->vertexBuffer };
+//            VkDeviceSize offsets[] = { 0 };
+//            vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+//
+//            vkCmdBindIndexBuffer(commandBuffer, wall_entity->mesh->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+//
+//            // Draw the mesh
+//            vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(wall_entity->mesh->indices.size()), 1, 0, 0, 0);
+//        }
+void RenderEntities(Zayn* zaynMem, VkCommandBuffer commandBuffer) {
+    EntityFactory* entityFactory = &zaynMem->entityFactory;
+    ComponentsFactory * componentfactory = &zaynMem->componentsFactory;
 
-           // vkCmdPushConstants(commandBuffer, zaynMem->renderer.data.vkPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(ModelPushConstant), &wall_entity->pushConstantData);
-           vkCmdPushConstants(commandBuffer, zaynMem->renderer.data.vkPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(ModelPushConstant), &pushConstant);
+    RenderInstancedMeshes(zaynMem, commandBuffer);
 
-           // Bind the vertex and index buffers
-           VkBuffer vertexBuffers[] = { wall_entity->mesh->vertexBuffer };
-           VkDeviceSize offsets[] = { 0 };
-           vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-
-           vkCmdBindIndexBuffer(commandBuffer, wall_entity->mesh->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
-           // Draw the mesh
-           vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(wall_entity->mesh->indices.size()), 1, 0, 0, 0);
-       }
-
-       for (int i = 0; i < entityFactory->activeEntityHandles.count; i++) {
-           EntityHandle* entityHandle = &entityFactory->activeEntityHandles[i];
+    for (int i = 0; i < entityFactory->activeEntityHandles.count; i++) {
+        EntityHandle* entityHandle = &entityFactory->activeEntityHandles[i];
+    }
+}
            // // GameObject& gameObj = zaynMem->gameObjects[i];
            // VkDescriptorSet& set = playerEntity->material->descriptorSets[zaynMem->renderer.data.vkCurrentFrame];
 
@@ -1902,10 +1992,10 @@ void RenderEntities(Zayn* zaynMem, VkCommandBuffer commandBuffer)
            //
            //  // Draw the mesh
            //  vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(playerEntity->mesh->indices.size()), 1, 0, 0, 0);
-       }
+       // }
 
-       for (int i = 0; i < componentfactory->componentsStorage.meshComponents.count; i++)
-       {
+       // for (int i = 0; i < componentfactory->componentsStorage.meshComponents.count; i++)
+       // {
            // EntityHandle* meshEntity
           // // GameObject& gameObj = zaynMem->gameObjects[i];
           //  // VkDescriptorSet& set = playerEntity->material->descriptorSets[zaynMem->renderer.data.vkCurrentFrame];
@@ -1929,8 +2019,8 @@ void RenderEntities(Zayn* zaynMem, VkCommandBuffer commandBuffer)
        //
        //  // Draw the mesh
        //  vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(playerEntity->mesh->indices.size()), 1, 0, 0, 0);
-    }
-}
+    // }
+// }
 
 void EndSwapChainRenderPass(Renderer* renderer, VkCommandBuffer commandBuffer)
 {

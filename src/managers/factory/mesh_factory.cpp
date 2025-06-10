@@ -174,6 +174,26 @@ void LoadModel(std::string modelPath, std::vector<Vertex>* vertices, std::vector
 
 }
 
+void EnableMeshInstancing(Zayn* zaynMem, Mesh* mesh, uint32_t maxInstances) {
+    if (mesh->supportsInstancing) return;
+
+    Renderer* renderer = &zaynMem->renderer;
+    mesh->supportsInstancing = true;
+    mesh->maxInstances = maxInstances;
+    mesh->instanceCount = 0;
+
+    mesh->instanceData = MakeDynamicArray<InstancedData>(&zaynMem->permanentMemory, maxInstances);
+    mesh->registeredEntities = MakeDynamicArray<EntityHandle>(&zaynMem->permanentMemory, maxInstances);
+
+    VkDeviceSize bufferSize = sizeof(InstancedData) * maxInstances;
+    CreateBuffer(renderer, bufferSize,
+        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        mesh->instanceBuffer, mesh->instanceBufferMemory);
+
+    vkMapMemory(renderer->data.vkDevice, mesh->instanceBufferMemory, 0, bufferSize, 0, &mesh->instanceBufferMapped);
+}
+
 Mesh* MakeMesh(Zayn* zaynMem, MeshCreationInfo* info) {
     Renderer* renderer = &zaynMem->renderer;
     Mesh mesh ={};
@@ -187,6 +207,8 @@ Mesh* MakeMesh(Zayn* zaynMem, MeshCreationInfo* info) {
     Mesh* pointerToStoredMesh = &zaynMem->meshFactory.meshes[meshIndex];
     zaynMem->meshFactory.meshNamePointerMap[mesh.name] = pointerToStoredMesh;
     zaynMem->meshFactory.availableMeshNames.push_back(mesh.name);
+
+    EnableMeshInstancing(zaynMem, pointerToStoredMesh, 100);
 
     return pointerToStoredMesh;
 }

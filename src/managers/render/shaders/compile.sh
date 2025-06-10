@@ -10,7 +10,7 @@ GLSLC_PATH="glslc" # ASSUMES glslc is in the system PATH - CHANGE IF NEEDED!
 # !! IMPORTANT: Update these paths to match your project structure on macOS !!
 # Use absolute paths or paths relative to where you run the script.
 # Example: INPUT_DIR="/Users/your_username/dev/Zayn_PC/src/render/shaders"
-INPUT_DIR="/Users/socki/dev/z3/src/render/shaders" # <-- EDIT THIS
+INPUT_DIR="/Users/adamsocki/dev/clion/z1000/src/managers/render/shaders" # <-- EDIT THIS
 OUTPUT_DIR="${INPUT_DIR}/compiled" # Output directory is inside the input dir
 # --- End Configuration ---
 

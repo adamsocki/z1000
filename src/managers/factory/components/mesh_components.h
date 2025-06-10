@@ -18,6 +18,19 @@ struct Mesh {
 
     bool isInitialized = false;
 
+
+    // Instancing support
+    bool supportsInstancing = false;
+    VkBuffer instanceBuffer = VK_NULL_HANDLE;
+    VkDeviceMemory instanceBufferMemory = VK_NULL_HANDLE;
+    void* instanceBufferMapped = nullptr;
+    uint32_t instanceCount = 0;
+    uint32_t maxInstances = 0;
+
+    DynamicArray<InstancedData> instanceData;
+    DynamicArray<EntityHandle> registeredEntities;
+    bool instanceDataRequiresGpuUpdate = true;
+
 };
 
 
