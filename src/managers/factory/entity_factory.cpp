@@ -1,14 +1,27 @@
 
 void InitEntityTypeInfo( Zayn* zaynMem) {
 	constexpr EntityTypeInfoForBuffer defaultEntityTypeInfo[] = {
-		// [EntityType_Player] = {EntityType_Player, sizeof(int32), 10, "Player"},
-		// [EntityType_Floor]  = {EntityType_Floor, sizeof(int32), 10000, "Floor"},
-		// [EntityType_Piano]  = {EntityType_Piano, sizeof(int32), 10, "Grand Piano"},
+		[EntityType_Player] = {EntityType_Player, sizeof(int32), 10, "Player"},
+		[EntityType_Floor]  = {EntityType_Floor, sizeof(int32), 10000, "Floor"},
+		[EntityType_Piano]  = {EntityType_Piano, sizeof(int32), 10, "Grand Piano"},
 		[EntityType_Wall]  = {EntityType_Wall, sizeof(WallEntity), 100, "Wall"},
 		// Add maor here...
 	};
 
-	memcpy(zaynMem->entityTypeInfoForBuffer, defaultEntityTypeInfo, sizeof(defaultEntityTypeInfo));
+	memcpy(zaynMem->entityFactory.entityTypeInfoForBuffer, defaultEntityTypeInfo, sizeof(defaultEntityTypeInfo));
+}
+
+void InitEntityBuffers(EntityFactory* entityFactory) {
+	for (int i = 0; i < EntityType_Count; i++)
+	{
+		EntityTypeInfoForBuffer info = entityFactory->entityTypeInfoForBuffer[i];
+		EntityTypeBuffer* buffer = &entityFactory->buffers[i];
+		buffer->capacity = info.defaultCapacity;
+		buffer->sizeInBytes = info.structSize;
+		buffer->count = 0;
+		buffer->entities = malloc(buffer->capacity * buffer->sizeInBytes);
+		memset(buffer->entities, 0, buffer->capacity * buffer->sizeInBytes);
+	}
 }
 void* GetEntity(EntityFactory* entityFactory, EntityHandle handle) {
 	if (handle.indexInInfo >= entityFactory->entityCapacity) {
@@ -41,7 +54,7 @@ void InitEntityFactory(EntityFactory* entityFactory, Zayn* zaynMem) {
 	entityFactory->nextID = 0;
 
 	entityFactory->activeEntityHandles = MakeDynamicArray<EntityHandle>(&zaynMem->permanentMemory, 5000);
-	// InitEntityBuffers(entityFactory, zaynMem);
+	InitEntityBuffers(entityFactory);
 }
 EntityHandle AddEntity(EntityFactory* entityFactory, EntityType type) {
 	int32 nextFreeIdInIndex = entityFactory->nextID;

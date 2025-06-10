@@ -174,7 +174,7 @@ void LoadModel(std::string modelPath, std::vector<Vertex>* vertices, std::vector
 
 }
 
-void MakeMesh(Zayn* zaynMem, MeshCreationInfo* info) {
+Mesh* MakeMesh(Zayn* zaynMem, MeshCreationInfo* info) {
     Renderer* renderer = &zaynMem->renderer;
     Mesh mesh ={};
     mesh.path = info->path;
@@ -187,6 +187,8 @@ void MakeMesh(Zayn* zaynMem, MeshCreationInfo* info) {
     Mesh* pointerToStoredMesh = &zaynMem->meshFactory.meshes[meshIndex];
     zaynMem->meshFactory.meshNamePointerMap[mesh.name] = pointerToStoredMesh;
     zaynMem->meshFactory.availableMeshNames.push_back(mesh.name);
+
+    return pointerToStoredMesh;
 }
 
 

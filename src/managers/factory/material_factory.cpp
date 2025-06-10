@@ -63,10 +63,8 @@ bool AllocateMaterialDescriptorSet(Zayn* zaynMem, Material* material, uint32_t f
         return true;
     }
 
-void MakeMaterial(Zayn* zaynMem, MaterialCreateInfo* info)
+Material* MakeMaterial(Zayn* zaynMem, MaterialCreateInfo* info)
 {
-
-
     Material material = {};
     material.type = info->type;
     //outMaterial->color = info->color;
@@ -87,11 +85,10 @@ void MakeMaterial(Zayn* zaynMem, MaterialCreateInfo* info)
 
     zaynMem->materialFactory.materialNamePointerMap[material.name] = pointerToStoredMaterial;
     zaynMem->materialFactory.availableMaterialNames.push_back(material.name);
+    return pointerToStoredMaterial;
 }
 
 void InitMaterialFactory(Zayn* zaynMem)
 {
     zaynMem->materialFactory.materials = MakeDynamicArray<Material>(&zaynMem->permanentMemory, 100);
 }
-
-

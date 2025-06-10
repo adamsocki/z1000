@@ -32,6 +32,7 @@ struct Material {
 
 struct MaterialFactory
 {
+
     DynamicArray<Material> materials;
 
     std::unordered_map<std::string, Material*> materialNamePointerMap;

@@ -42,8 +42,7 @@ struct Zayn {
 
 
 
-    EntityTypeInfoForBuffer entityTypeInfoForBuffer[EntityType_Count];
-        // {EntityType_Player, sizeof(int32), 10, "Player"}
+         // {EntityType_Player, sizeof(int32), 10, "Player"}
         // {EntityType_Floor, sizeof(FloorEntity), 10000, "Floor"},
 
         // {EntityType_Piano, sizeof(GrandPianoEntity), 10, "Grand Piano"}

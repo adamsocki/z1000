@@ -34,5 +34,8 @@ struct Texture {
 
 struct TextureFactory
 {
+    std::unordered_map<std::string, Texture*> textureNamePointerMap;
+    std::vector<std::string> availableTextureNames;
+
     DynamicArray<Texture> textures;
 };

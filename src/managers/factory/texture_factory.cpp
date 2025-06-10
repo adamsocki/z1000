@@ -70,7 +70,7 @@ void CreateTextureSampler(Renderer* rederer, uint32_t& mipLevels, VkSampler* tex
     }
 }
 
-void MakeTexture(Zayn* zaynMem, TextureCreateInfo* info)
+Texture* MakeTexture(Zayn* zaynMem, TextureCreateInfo* info)
 {
     Texture texture = {};
     Renderer* renderer = &zaynMem->renderer;
@@ -80,7 +80,12 @@ void MakeTexture(Zayn* zaynMem, TextureCreateInfo* info)
     CreateTextureImageView(renderer, texture.mipLevels, &texture.image, &texture.view);
     CreateTextureSampler(renderer, texture.mipLevels, &texture.sampler);
 
-    PushBack(&zaynMem->textureFactory.textures, texture);
+    uint32_t materialIndex = PushBack(&zaynMem->textureFactory.textures, texture);
+    Texture* pointerToStoredTexture = &zaynMem->textureFactory.textures[materialIndex];
+
+    zaynMem->textureFactory.textureNamePointerMap[texture.name] = pointerToStoredTexture;
+    zaynMem->textureFactory.availableTextureNames.push_back(texture.name);
+    return pointerToStoredTexture;
 }
 void InitTextureFactory(Zayn* zaynMem)
 {

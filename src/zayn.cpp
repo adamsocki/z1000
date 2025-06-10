@@ -20,12 +20,12 @@
 #include "managers/camera.cpp"
 
 
+#include "managers/factory/entity_factory.cpp"
 #include "managers/render/render.cpp"
 #include "managers/factory/components_factory.cpp"
 #include "managers/factory/mesh_factory.cpp"
 #include "managers/factory/material_factory.cpp"
 #include "managers/factory/texture_factory.cpp"
-#include "managers/factory/entity_factory.cpp"
 
 #include "game/game.cpp"
 
