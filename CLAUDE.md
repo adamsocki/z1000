@@ -1,12 +1,18 @@
-## program: game engine using vulkan rendering
+## Program: Vulkan-based Game Engine
 
-### style
-use c style instead of c++ when possible
-no oop
-use structs no classes
-includes should only be done in a sequential order at the initial zayn.cpp or zayn.h
-dont compile other than main.cpp in cmake
+### Coding Style Guidelines
+- Prefer C-style programming over C++ features whenever possible.
+- Avoid object-oriented programming; do not use classes.
+- Use `struct` for data organization.
+- Write simple, clear, and straightforward code.
+- Place all `#include` directives sequentially at the top of `zayn.cpp` or `zayn.h` only.
+    - New headers should not contain their own function declarations.
+- Only compile `main.cpp` in CMake; do not add other source files to the build.
 
-
-### game goals
-I need help with figuring out what a game will be.
+### Game Design Goals
+- Need to define the core concept and objectives for the game.
+- Suggestions for improvement:
+    - Brainstorm possible game genres (e.g., puzzle, platformer, shooter).
+    - Consider a minimal prototype to test engine features.
+    - Focus on a small, achievable gameplay loop to start.
+    - Gather feedback and iterate on the game idea as the engine develops.
