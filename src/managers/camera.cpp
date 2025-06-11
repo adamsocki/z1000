@@ -89,8 +89,9 @@ void UpdateCamera(WindowManager* windowManager, Camera* cam, InputManager* input
                 float pitchRad = cam->pitch * (3.14159f / 180.0f);
 
                 // Calculate front vector (this is the direction the camera is looking)
-                cam->front.x = cos(yawRad) * cos(pitchRad);
-                cam->front.y = sin(yawRad) * cos(pitchRad);
+                // Adjusted for Y-forward, Z-up coordinate system
+                cam->front.x = sin(yawRad) * cos(pitchRad);
+                cam->front.y = -cos(yawRad) * cos(pitchRad);
                 cam->front.z = sin(pitchRad);
                 NormalizeVector(&cam->front);
 
@@ -128,6 +129,15 @@ void UpdateCamera(WindowManager* windowManager, Camera* cam, InputManager* input
                     // Strafe right
                     cam->pos = cam->pos + ScaleVector(cam->right, moveSpeed);
                 }
+
+            	if (InputHeld(inputManager->keyboard, Input_Q)) {
+            		// Strafe left
+            		cam->pos = cam->pos - ScaleVector(cam->up, moveSpeed);
+            	}
+            	if (InputHeld(inputManager->keyboard, Input_E)) {
+            		// Strafe right
+            		cam->pos = cam->pos + ScaleVector(cam->up, moveSpeed);
+            	}
 
                 // // Optional: Q/E for vertical movement (often used in free-cam modes)
                 // if (InputHeld(inputManager->keyboard, Input_Q)) {
@@ -179,9 +189,9 @@ void InitCamera(Camera* cam, GLFWwindow* glfWwindow, InputManager* inputManager)
 	cam->targetTurnSpeed = 160.0f;
 
 	cam->pos = V3(0, 0, 0.5f);
-	cam->front = V3(-1, 0, 0);
+	cam->front = V3(0, -1, 0);
 	cam->up = V3(0, 0, 1);
-	cam->right = V3(0, -1, 0);
+	cam->right = V3(1, 0, 0);
 
 	cam->cursorCaptured = false;
 	cam->firstMouseCapture = true;

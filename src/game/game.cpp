@@ -18,6 +18,9 @@ void InitGame(Zayn *zaynMem) {
     m1.path = GetModelPath("viking_room.obj");
     Mesh* mesh1 = MakeMesh(zaynMem, &m1);
 
+    //Test Procedural Wall
+    Mesh* wallMesh = CreateProceduralWall(zaynMem, 5.0f, 3.0f, 0.5f);
+    Mesh* floorMesh = CreateProceduralPlane(zaynMem, 10.0f, 10.0f, 5);
 
     TextureCreateInfo texture1;
     texture1.path = "viking_room.png";
@@ -35,15 +38,14 @@ void InitGame(Zayn *zaynMem) {
     InitEntityHandleBuffers(&zaynMem->gameData, &zaynMem->permanentMemory);
 
     // Example walls using new Euler angle rotation system (commented out for now):
-    //
     // North wall (no rotation)
     EntityHandle wall_north = AddEntity(&zaynMem->entityFactory, EntityType_Wall);
     PushBack(&zaynMem->gameData.walls, wall_north);
     WallEntity* wallNorth = (WallEntity*)GetEntity(&zaynMem->entityFactory, wall_north);
     wallNorth->material = mat1;
-    wallNorth->mesh = mesh1;
+    wallNorth->mesh = wallMesh;
     mat4 northWallTransform = TRS(V3(0.0f, 0.0f, 0.0f), V3(0.0f, 0.0f, 0.0f), V3(1.0f, 1.0f, 1.0f));
-    AddMeshInstance(mesh1, wall_north, northWallTransform);
+    AddMeshInstance(wallMesh, wall_north, northWallTransform);
 
     // // South wall (180 degrees Y rotation)
     // EntityHandle wall_south = AddEntity(&zaynMem->entityFactory, EntityType_Wall);

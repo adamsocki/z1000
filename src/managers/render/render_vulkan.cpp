@@ -1716,7 +1716,6 @@ void UpdateUniformBuffer(uint32_t currentImage, Renderer* renderer, Camera* cam)
     glm::vec3 camUp = glm::vec3(cam->up.x, cam->up.y, cam->up.z);
 
     ubo.view = glm::lookAt(camPos, camPos + camFront, camUp);
-    // ubo.view = glm::lookAt(cam->pos, cam->pos + cam->front, cam->up);
 
     ubo.proj = glm::perspective(glm::radians(60.0f), renderer->data.vkSwapChainExtent.width / (float)renderer->data.vkSwapChainExtent.height, 0.1f, 1000.0f);
     ubo.proj[1][1] *= -1;
