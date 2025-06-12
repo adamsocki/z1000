@@ -13,10 +13,17 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(tinyobjloader)
 
+FetchContent_Declare(
+        nlohmann_json
+        GIT_REPOSITORY https://github.com/nlohmann/json.git
+        GIT_TAG        v3.11.3
+)
+FetchContent_MakeAvailable(nlohmann_json)
+
 find_package(glfw3 3.3 REQUIRED)
 find_package(Vulkan REQUIRED)
 
 
 add_executable(z1000 src/main.cpp)
 
-target_link_libraries(z1000 glfw Vulkan::Vulkan tinyobjloader)
+target_link_libraries(z1000 glfw Vulkan::Vulkan tinyobjloader nlohmann_json::nlohmann_json)

@@ -26,6 +26,8 @@
 #include "managers/factory/mesh_factory.cpp"
 #include "managers/factory/material_factory.cpp"
 #include "managers/factory/texture_factory.cpp"
+#include "managers/level_manager.cpp"
+#include "managers/level_editor.cpp"
 
 #include "game/game.cpp"
 
@@ -56,7 +58,8 @@ void InitZayn(Zayn* zaynMem) {
     InitMaterialFactory(zaynMem);
     InitEntityFactory(&zaynMem->entityFactory, zaynMem);
     InitComponentsFactory(&zaynMem->componentsFactory, &zaynMem->permanentMemory);
-
+    InitLevelManager(&zaynMem->levelManager);
+    InitLevelEditor(&zaynMem->levelEditor);
 
     InitRender(zaynMem);
     InitGame(zaynMem);
@@ -71,30 +74,27 @@ void UpdateZayn(Zayn* zaynMem) {
 
     UpdateCamera(&zaynMem->windowManager, &zaynMem->camera, &zaynMem->inputManager, &zaynMem->time);
 
-
-    // UpdateComponentsFactory(Z);
-
-
+    // Update level editor
+    UpdateLevelEditor(zaynMem, &zaynMem->levelEditor);
 
     UpdateRenderer(zaynMem, &zaynMem->renderer, &zaynMem->windowManager, &zaynMem->camera, &zaynMem->inputManager);
 
-    
-
     // LOGIC
-    if (InputHeld(zaynMem->inputManager.keyboard, Input_A)) {
-        std::cout<<"A is held"<<std::endl;
-    }
-    if (InputHeld(zaynMem->inputManager.keyboard, Input_B)) {
-        std::cout<<"B is held"<<std::endl;
-    }
-    if (InputHeld(zaynMem->inputManager.keyboard, Input_C)) {
-        std::cout<<"C is held"<<std::endl;
-    }
 
     if (InputPressed(zaynMem->inputManager.keyboard, Input_Escape)) {
         // close the window
         std::cout<<"Escape is pressed"<<std::endl;
         glfwSetWindowShouldClose(zaynMem->windowManager.glfwWindow, true);
+    }
+    
+    // Level editor shortcuts
+    if (InputPressed(zaynMem->inputManager.keyboard, Input_L)) {
+        std::cout << "Loading test level..." << std::endl;
+        LoadLevel(zaynMem, "test_level.json");
+    }
+    if (InputPressed(zaynMem->inputManager.keyboard, Input_P)) {
+        std::cout << "Saving current level..." << std::endl;
+        SaveLevel(zaynMem, "saved_level.json");
     }
 
 

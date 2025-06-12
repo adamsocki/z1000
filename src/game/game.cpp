@@ -39,13 +39,13 @@ void InitGame(Zayn *zaynMem) {
 
     // Example walls using new Euler angle rotation system (commented out for now):
     // North wall (no rotation)
-    EntityHandle wall_north = AddEntity(&zaynMem->entityFactory, EntityType_Wall);
-    PushBack(&zaynMem->gameData.walls, wall_north);
-    WallEntity* wallNorth = (WallEntity*)GetEntity(&zaynMem->entityFactory, wall_north);
-    wallNorth->material = mat1;
-    wallNorth->mesh = wallMesh;
-    mat4 northWallTransform = TRS(V3(0.0f, 0.0f, 0.0f), V3(0.0f, 0.0f, 0.0f), V3(1.0f, 1.0f, 1.0f));
-    AddMeshInstance(wallMesh, wall_north, northWallTransform);
+    // EntityHandle wall_north = AddEntity(&zaynMem->entityFactory, EntityType_Wall);
+    // PushBack(&zaynMem->gameData.walls, wall_north);
+    // WallEntity* wallNorth = (WallEntity*)GetEntity(&zaynMem->entityFactory, wall_north);
+    // wallNorth->material = mat1;
+    // wallNorth->mesh = wallMesh;
+    // mat4 northWallTransform = TRS(V3(0.0f, 0.0f, 0.0f), V3(0.0f, 0.0f, 0.0f), V3(1.0f, 1.0f, 1.0f));
+    // AddMeshInstance(wallMesh, wall_north, northWallTransform);
 
     // // South wall (180 degrees Y rotation)
     // EntityHandle wall_south = AddEntity(&zaynMem->entityFactory, EntityType_Wall);

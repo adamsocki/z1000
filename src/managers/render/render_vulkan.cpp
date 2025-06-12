@@ -1856,7 +1856,7 @@ void RenderMeshInstanced(VkCommandBuffer commandBuffer, Mesh* mesh, VkDescriptor
     vkCmdBindVertexBuffers(commandBuffer, 0, 2, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-    std::cout << "Drawing " << mesh->indices.size() << " indices with " << mesh->instanceCount << " instances" << std::endl;
+    // std::cout << "Drawing " << mesh->indices.size() << " indices with " << mesh->instanceCount << " instances" << std::endl;
     vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh->indices.size()), mesh->instanceCount, 0, 0, 0);
 }
 
@@ -1886,12 +1886,12 @@ void AddMeshInstance(Mesh* mesh, EntityHandle entityHandle, mat4 modelMatrix) {
 
 
 void RenderInstancedMeshes(Zayn* zaynMem, VkCommandBuffer commandBuffer) {
-    std::cout << "RenderInstancedMeshes: Total meshes: " << zaynMem->meshFactory.meshes.count << std::endl;
+    // std::cout << "RenderInstancedMeshes: Total meshes: " << zaynMem->meshFactory.meshes.count << std::endl;
 
     // Render all meshes that have instances
     for (int i = 0; i < zaynMem->meshFactory.meshes.count; i++) {
         Mesh* mesh = &zaynMem->meshFactory.meshes[i];
-        std::cout << "Mesh " << i << " has " << mesh->instanceCount << " instances" << std::endl;
+        // std::cout << "Mesh " << i << " has " << mesh->instanceCount << " instances" << std::endl;
 
         if (mesh->instanceCount == 0) continue;
 
@@ -1912,7 +1912,7 @@ void RenderInstancedMeshes(Zayn* zaynMem, VkCommandBuffer commandBuffer) {
         if (!material) continue;
         VkDescriptorSet& set = material->descriptorSets[frameIndex];
 
-        std::cout << "Rendering mesh with " << mesh->instanceCount << " instances" << std::endl;
+        // std::cout << "Rendering mesh with " << mesh->instanceCount << " instances" << std::endl;
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, zaynMem->renderer.data.vkGraphicsPipeline);
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, zaynMem->renderer.data.vkPipelineLayout, 0, 1, &set, 0, nullptr);

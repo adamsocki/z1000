@@ -16,6 +16,8 @@
 #include "managers/factory/mesh_factory.h"
 #include "managers/factory/texture_factory.h"
 #include "managers/factory/material_factory.h"
+#include "managers/level_manager.h"
+#include "managers/level_editor.h"
 
 #include "game/game.h"
 
@@ -37,6 +39,8 @@ struct Zayn {
 
 
     GameData gameData;
+    LevelManager levelManager;
+    LevelEditor levelEditor;
 
     Renderer renderer;
 
