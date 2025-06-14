@@ -527,8 +527,52 @@ void UpdateMyImgui(Zayn* zaynMem, LevelEditor* editor, Camera* camera, Renderer*
         ImGui::Separator();
         ImGui::Text("Entity Creation");
 
-        if (ImGui::Button("Create Wall")) {
+        // Entity type selection
+        const char* entityTypeNames[] = {"Player", "Floor", "Piano", "Wall"};
+        ImGui::Text("Entity Type:");
+        ImGui::Combo("##EntityType", &editor->selectedEntityTypeForCreation, entityTypeNames, EntityType_Count);
+        
+        // Mesh selection
+        ImGui::Text("Mesh:");
+        if (zaynMem->meshFactory.meshes.count > 0) {
+            static std::vector<const char*> meshNames;
+            meshNames.clear();
+            for (uint32 i = 0; i < zaynMem->meshFactory.meshes.count; i++) {
+                meshNames.push_back(zaynMem->meshFactory.meshes[i].name.c_str());
+            }
+            
+            if (editor->selectedMeshForCreation >= meshNames.size()) {
+                editor->selectedMeshForCreation = 0;
+            }
+            
+            ImGui::Combo("##Mesh", &editor->selectedMeshForCreation, meshNames.data(), meshNames.size());
+        } else {
+            ImGui::Text("No meshes available");
+        }
+        
+        // Material selection
+        ImGui::Text("Material:");
+        if (zaynMem->materialFactory.materials.count > 0) {
+            static std::vector<const char*> materialNames;
+            materialNames.clear();
+            for (uint32 i = 0; i < zaynMem->materialFactory.materials.count; i++) {
+                materialNames.push_back(zaynMem->materialFactory.materials[i].name.c_str());
+            }
+            
+            if (editor->selectedMaterialForCreation >= materialNames.size()) {
+                editor->selectedMaterialForCreation = 0;
+            }
+            
+            ImGui::Combo("##Material", &editor->selectedMaterialForCreation, materialNames.data(), materialNames.size());
+        } else {
+            ImGui::Text("No materials available");
+        }
+        
+        // Create entity button
+        if (ImGui::Button("Create Entity")) {
             vec3 spawnPos = camera->position + camera->front * 5.0f;
+            editor->entitySpawnPosition = spawnPos;
+            editor->requestCreateEntity = true;
         }
 
         ImGui::Separator();

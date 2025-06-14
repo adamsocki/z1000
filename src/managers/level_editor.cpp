@@ -18,6 +18,13 @@ void InitLevelEditor(LevelEditor* editor) {
     editor->requestCreateLevel = false;
     strcpy(editor->newLevelName, "new_level");
     strcpy(editor->selectedLevelFile, "");
+    
+    // Initialize entity creation UI state
+    editor->selectedEntityTypeForCreation = EntityType_Wall;
+    editor->selectedMeshForCreation = 0;
+    editor->selectedMaterialForCreation = 0;
+    editor->requestCreateEntity = false;
+    editor->entitySpawnPosition = V3(0, 0, 0);
 }
 
 void SelectEntity(LevelEditor* editor, EntityHandle handle, EntityType type) {
@@ -171,6 +178,83 @@ void DeleteSelectedEntity(Zayn* zaynMem, LevelEditor* editor) {
     DeselectEntity(editor);
 }
 
+EntityHandle CreateWallEntity(Zayn* zaynMem, vec3 position, vec3 rotation, vec3 scale) {
+    EntityHandle handle = AddEntity(&zaynMem->entityFactory, EntityType_Wall);
+    WallEntity* wall = (WallEntity*)GetEntity(&zaynMem->entityFactory, handle);
+    
+    if (wall) {
+        wall->position = position;
+        wall->rotation = rotation;
+        wall->scale = scale;
+        wall->isActive = true;
+        
+        // Assign default mesh and material if available
+        if (zaynMem->meshFactory.meshes.count > 0) {
+            wall->mesh = &zaynMem->meshFactory.meshes[0];
+        }
+        if (zaynMem->materialFactory.materials.count > 0) {
+            wall->material = &zaynMem->materialFactory.materials[0];
+        }
+        
+        // Add to renderer
+        if (wall->mesh && wall->material) {
+            mat4 transform = TRS(position, rotation, scale);
+            AddMeshInstance(wall->mesh, handle, transform);
+        }
+        
+        // Add to game data
+        PushBack(&zaynMem->gameData.walls, handle);
+    }
+    
+    return handle;
+}
+
+EntityHandle CreateEntityAtPosition(Zayn* zaynMem, EntityType entityType, vec3 position, int meshIndex, int materialIndex) {
+    switch (entityType) {
+        case EntityType_Wall: {
+            EntityHandle handle = AddEntity(&zaynMem->entityFactory, EntityType_Wall);
+            WallEntity* wall = (WallEntity*)GetEntity(&zaynMem->entityFactory, handle);
+            
+            if (wall) {
+                wall->position = position;
+                wall->rotation = V3(0, 0, 0);
+                wall->scale = V3(1, 1, 1);
+                wall->isActive = true;
+                
+                // Assign mesh
+                if (meshIndex >= 0 && meshIndex < zaynMem->meshFactory.meshes.count) {
+                    wall->mesh = &zaynMem->meshFactory.meshes[meshIndex];
+                } else if (zaynMem->meshFactory.meshes.count > 0) {
+                    wall->mesh = &zaynMem->meshFactory.meshes[0];
+                }
+                
+                // Assign material
+                if (materialIndex >= 0 && materialIndex < zaynMem->materialFactory.materials.count) {
+                    wall->material = &zaynMem->materialFactory.materials[materialIndex];
+                } else if (zaynMem->materialFactory.materials.count > 0) {
+                    wall->material = &zaynMem->materialFactory.materials[0];
+                }
+                
+                // Add to renderer
+                if (wall->mesh && wall->material) {
+                    mat4 transform = TRS(position, wall->rotation, wall->scale);
+                    AddMeshInstance(wall->mesh, handle, transform);
+                }
+                
+                // Add to game data
+                PushBack(&zaynMem->gameData.walls, handle);
+            }
+            
+            return handle;
+        }
+        
+        // Add other entity types here as needed
+        default:
+            printf("Entity type %d not yet supported for creation\n", entityType);
+            return {};
+    }
+}
+
 void UpdateLevelEditor(Zayn* zaynMem, LevelEditor* editor) {
     // Toggle editor mode first - before the early return
     if (InputPressed(zaynMem->inputManager.keyboard, Input_Tab)) {
@@ -222,5 +306,19 @@ void UpdateLevelEditor(Zayn* zaynMem, LevelEditor* editor) {
         strcpy(zaynMem->levelManager.currentLevel.levelName, editor->newLevelName);
         SaveLevel(zaynMem, fileName.c_str());
         editor->requestCreateLevel = false;
+    }
+    
+    // Handle entity creation request
+    if (editor->requestCreateEntity) {
+        EntityHandle newEntity = CreateEntityAtPosition(zaynMem, (EntityType)editor->selectedEntityTypeForCreation, 
+                                                      editor->entitySpawnPosition, editor->selectedMeshForCreation, editor->selectedMaterialForCreation);
+        
+        if (newEntity.indexInInfo >= 0) {
+            SelectEntity(editor, newEntity, (EntityType)editor->selectedEntityTypeForCreation);
+            printf("Created entity of type %d at position (%.1f, %.1f, %.1f)\n", 
+                   editor->selectedEntityTypeForCreation, editor->entitySpawnPosition.x, editor->entitySpawnPosition.y, editor->entitySpawnPosition.z);
+        }
+        
+        editor->requestCreateEntity = false;
     }
 }

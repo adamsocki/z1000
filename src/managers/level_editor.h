@@ -31,4 +31,11 @@ struct LevelEditor {
     bool requestCreateLevel;
     char newLevelName[64];
     char selectedLevelFile[128];
+    
+    // Entity creation UI state
+    int selectedEntityTypeForCreation;
+    int selectedMeshForCreation;
+    int selectedMaterialForCreation;
+    bool requestCreateEntity;
+    vec3 entitySpawnPosition;
 };

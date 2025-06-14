@@ -12,7 +12,6 @@ void InitEntityHandleBuffers(GameData* gameData, MemoryArena* arena) {
 
 void InitGame(Zayn *zaynMem) {
 
-
     MeshCreationInfo m1 = {};
     m1.name = "viking_room";
     m1.path = GetModelPath("viking_room.obj");
