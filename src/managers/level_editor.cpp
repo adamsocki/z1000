@@ -10,6 +10,14 @@ void InitLevelEditor(LevelEditor* editor) {
     editor->selectedEntity.isValid = false;
     editor->moveSpeed = 0.1f;
     editor->rotateSpeed = 5.0f;
+    
+    // Initialize UI state
+    editor->selectedLevelIndex = 0;
+    editor->requestLoadLevel = false;
+    editor->requestSaveLevel = false;
+    editor->requestCreateLevel = false;
+    strcpy(editor->newLevelName, "new_level");
+    strcpy(editor->selectedLevelFile, "");
 }
 
 void SelectEntity(LevelEditor* editor, EntityHandle handle, EntityType type) {
@@ -196,4 +204,23 @@ void UpdateLevelEditor(Zayn* zaynMem, LevelEditor* editor) {
     
     // Update selected entity transform
     UpdateSelectedEntityTransform(zaynMem, editor);
+    
+    // Handle level management requests from UI
+    if (editor->requestLoadLevel) {
+        LoadLevel(zaynMem, editor->selectedLevelFile);
+        editor->requestLoadLevel = false;
+    }
+    
+    if (editor->requestSaveLevel) {
+        SaveLevel(zaynMem, editor->selectedLevelFile);
+        editor->requestSaveLevel = false;
+    }
+    
+    if (editor->requestCreateLevel) {
+        std::string fileName = std::string(editor->newLevelName) + ".json";
+        ClearLevel(zaynMem);
+        strcpy(zaynMem->levelManager.currentLevel.levelName, editor->newLevelName);
+        SaveLevel(zaynMem, fileName.c_str());
+        editor->requestCreateLevel = false;
+    }
 }

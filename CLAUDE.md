@@ -1,5 +1,8 @@
 ## Program: Vulkan-based Game Engine
 
+### Sequential Includes 
+- I don't want to do function declarations in header files. instead all my functions are referenced by sequential includes
+
 ### Coding Style Guidelines
 - Prefer C-style programming over C++ features whenever possible.
 - Avoid object-oriented programming; do not use classes.

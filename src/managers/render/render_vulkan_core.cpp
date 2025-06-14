@@ -1,4 +1,7 @@
 #include "render_vulkan_functions.h"
+#include <filesystem>
+#include <vector>
+#include <string>
 
 VkResult AcquireNextImage(Renderer* renderer, uint32_t* imageIndex)
 {
@@ -429,8 +432,83 @@ void UpdateMyImgui(Zayn* zaynMem, LevelEditor* editor, Camera* camera, Renderer*
     if (ImGui::Begin("Level Tools", &showLevelTools)) {
         ImGui::Text("Level Management");
 
-        if (ImGui::Button("Save Level")) {
-            ImGui::OpenPopup("Save Complete");
+        // Get list of level files
+        static std::vector<std::string> levelFiles;
+        static int selectedLevelIndex = 0;
+        static bool needsRefresh = true;
+        
+        if (needsRefresh) {
+            levelFiles.clear();
+            std::string levelsPath = "../levels/";
+            
+            #ifdef __APPLE__
+            levelsPath = std::string(PROJECT_DIR_MAC) + "levels/";
+            #elif WIN32
+            levelsPath = "../levels/";
+            #endif
+            
+            try {
+                for (const auto& entry : std::filesystem::directory_iterator(levelsPath)) {
+                    if (entry.is_regular_file() && entry.path().extension() == ".json") {
+                        levelFiles.push_back(entry.path().filename().string());
+                    }
+                }
+            } catch (const std::exception& e) {
+                // Fallback to default levels if directory reading fails
+                levelFiles = {"test_level.json", "saved_level.json"};
+            }
+            
+            if (levelFiles.empty()) {
+                levelFiles.push_back("No levels found");
+            }
+            needsRefresh = false;
+        }
+        
+        // Level selection dropdown
+        ImGui::Text("Select Level:");
+        const char* currentLevel = levelFiles.empty() ? "No levels" : levelFiles[selectedLevelIndex].c_str();
+        if (ImGui::BeginCombo("##LevelSelect", currentLevel)) {
+            for (int i = 0; i < levelFiles.size(); i++) {
+                bool isSelected = (selectedLevelIndex == i);
+                if (ImGui::Selectable(levelFiles[i].c_str(), isSelected)) {
+                    selectedLevelIndex = i;
+                }
+                if (isSelected) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndCombo();
+        }
+        
+        ImGui::SameLine();
+        if (ImGui::Button("Load Selected") && selectedLevelIndex < levelFiles.size()) {
+            editor->selectedLevelIndex = selectedLevelIndex;
+            strcpy(editor->selectedLevelFile, levelFiles[selectedLevelIndex].c_str());
+            editor->requestLoadLevel = true;
+        }
+        
+        ImGui::Separator();
+        
+        // New level creation
+        static char newLevelName[64] = "new_level";
+        ImGui::Text("Create New Level:");
+        ImGui::InputText("Level Name", newLevelName, sizeof(newLevelName));
+        ImGui::SameLine();
+        if (ImGui::Button("Create")) {
+            strcpy(editor->newLevelName, newLevelName);
+            editor->requestCreateLevel = true;
+            needsRefresh = true; // Refresh level list
+        }
+        
+        ImGui::Separator();
+        
+        if (ImGui::Button("Save Current Level")) {
+            if (selectedLevelIndex < levelFiles.size()) {
+                editor->selectedLevelIndex = selectedLevelIndex;
+                strcpy(editor->selectedLevelFile, levelFiles[selectedLevelIndex].c_str());
+                editor->requestSaveLevel = true;
+                ImGui::OpenPopup("Save Complete");
+            }
         }
 
         if (ImGui::BeginPopupModal("Save Complete", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
@@ -440,9 +518,10 @@ void UpdateMyImgui(Zayn* zaynMem, LevelEditor* editor, Camera* camera, Renderer*
             }
             ImGui::EndPopup();
         }
-
+        
         ImGui::SameLine();
-        if (ImGui::Button("Load Level")) {
+        if (ImGui::Button("Refresh List")) {
+            needsRefresh = true;
         }
 
         ImGui::Separator();

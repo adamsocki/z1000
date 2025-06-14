@@ -1,0 +1,9 @@
+{
+	"InstallScripts" : 
+	[
+		"/Users/adamsocki/dev/clion/z1000/build/cmake_install.cmake",
+		"/Users/adamsocki/dev/clion/z1000/build/_deps/tinyobjloader-build/cmake_install.cmake",
+		"/Users/adamsocki/dev/clion/z1000/build/_deps/nlohmann_json-build/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

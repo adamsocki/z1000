@@ -1,0 +1,1 @@
+/usr/bin/c++  -arch arm64 -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/z1000.dir/src/main.cpp.o -o z1000  -Wl,-rpath,/opt/homebrew/lib _deps/tinyobjloader-build/libtinyobjloader.a libimgui_lib.a /opt/homebrew/lib/libglfw.3.4.dylib /opt/homebrew/lib/libvulkan.dylib

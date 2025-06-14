@@ -23,4 +23,12 @@ struct LevelEditor {
     // Movement speeds
     real32 moveSpeed;
     real32 rotateSpeed;
+    
+    // UI state for level management
+    int selectedLevelIndex;
+    bool requestLoadLevel;
+    bool requestSaveLevel;
+    bool requestCreateLevel;
+    char newLevelName[64];
+    char selectedLevelFile[128];
 };
