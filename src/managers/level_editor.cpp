@@ -43,20 +43,19 @@ void UpdateSelectedEntityTransform(Zayn* zaynMem, LevelEditor* editor) {
         
         // Movement controls (WASD + QE for up/down)
         if (InputHeld(zaynMem->inputManager.keyboard, Input_W)) {
-            positionDelta.z -= editor->moveSpeed;
-            needsUpdate = true;
-            printf("W pressed - moving forward\n");
-        }
-        if (InputHeld(zaynMem->inputManager.keyboard, Input_S)) {
             positionDelta.z += editor->moveSpeed;
             needsUpdate = true;
         }
+        if (InputHeld(zaynMem->inputManager.keyboard, Input_S)) {
+            positionDelta.z -= editor->moveSpeed;
+            needsUpdate = true;
+        }
         if (InputHeld(zaynMem->inputManager.keyboard, Input_A)) {
-            positionDelta.x -= editor->moveSpeed;
+            positionDelta.x += editor->moveSpeed;
             needsUpdate = true;
         }
         if (InputHeld(zaynMem->inputManager.keyboard, Input_D)) {
-            positionDelta.x += editor->moveSpeed;
+            positionDelta.x -= editor->moveSpeed;
             needsUpdate = true;
         }
         if (InputHeld(zaynMem->inputManager.keyboard, Input_Q)) {

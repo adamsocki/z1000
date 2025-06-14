@@ -20,6 +20,9 @@ struct Renderer
 
 	#if VULKAN
 	Data data;
+	#if IMGUI
+	ImGuiData myImgui;
+	#endif
 	#endif
 
 };

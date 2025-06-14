@@ -1,4 +1,8 @@
 
+#if IMGUI
+#include "imgui_impl_glfw.h"
+#endif
+
 void AllocateInputManager(InputManager *inputManager, MemoryArena *arena, int32 deviceCapacity)
 {
     // Use a reasonable chunk size (e.g., 64 or 128 events per chunk)
@@ -178,12 +182,12 @@ bool InputPressed(InputDevice *device, int32 inputID)
 {
     return device->pressed[inputID] && device->framesHeld[inputID] == 0;
 }
-void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
+void mouseButtonCallback(GLFWwindow* window2, int button, int action, int mods)
     {
 
 
 #if IMGUI
-        ImGui_ImplGlfw_MouseButtonCallback(window, button, action, mods);
+        ImGui_ImplGlfw_MouseButtonCallback(window2, button, action, mods);
 #endif
     }
 

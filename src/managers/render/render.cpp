@@ -2,7 +2,8 @@
 
 #if VULKAN
 #define MAX_FRAMES_IN_FLIGHT 2
-#include "render_vulkan.cpp"
+#include "render_vulkan_init.cpp"
+#include "render_vulkan_core.cpp"
 
 
 #elif  OPENGL

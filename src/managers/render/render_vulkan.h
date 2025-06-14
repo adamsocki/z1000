@@ -259,3 +259,11 @@ struct Data
     uint32 vkCurrentImageIndex;
     bool vkIsFrameStarted = false;
 };
+
+struct ImGuiData {
+    VkRenderPass imGuiRenderPass;
+    VkCommandPool imGuiCommandPool;
+    std::vector<VkCommandBuffer> imGuiCommandBuffers;
+    std::vector<VkFramebuffer> imGuiFrameBuffers;
+    bool visible;
+};

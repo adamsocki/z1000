@@ -1,6 +1,44 @@
-#include "render_vulkan_functions.h"
+#include <optional>
+#include <vector>
+#include <array>
+#include <vulkan/vulkan.h>
+#include <glm/glm.hpp>
 
-// InitRender_Vulkan is now in render_vulkan_init.cpp
+#if IMGUI
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_vulkan.h"
+
+void InitMyImgui(Renderer* renderer, WindowManager* window);
+void UpdateMyImgui(Zayn* zaynMem, LevelEditor* editor, Camera* camera, Renderer* renderer, WindowManager* windowManager, InputManager* inputManager);
+#endif
+
+void InitRender_Vulkan(Renderer* renderer, WindowManager* window)
+{
+    std::cout << "InitRender_Vulkan()" << std::endl;
+    std::cout << "InitRender_Vulkan() with renderer address: " << renderer << std::endl;
+
+    StartRender_Init(renderer, window);
+
+#if IMGUI
+    InitMyImgui(renderer, window);
+#endif
+    std::cout << "after InitRender_Vulkan()" << std::endl;
+
+    CreateDescriptorSetLayout(renderer, &renderer->data.vkDescriptorSetLayout, true);
+    CreateDescriptorPool(renderer, &renderer->data.vkDescriptorPool, true);
+
+    CreatePushConstant<ModelPushConstant>(renderer);
+
+    CreateGraphicsPipeline(renderer, &renderer->data.vkGraphicsPipeline, GetShaderPath("vkShader_3d_vert.spv"), GetShaderPath("vkShader_3d_frag.spv"), renderer->data.vkPushConstantRanges, &renderer->data.vkDescriptorSetLayout, &renderer->data.vkPipelineLayout);
+
+    CreateUniformBuffer(renderer, renderer->data.vkUniformBuffers, renderer->data.vkUniformBuffersMemory, renderer->data.vkUniformBuffersMapped);
+
+    CreateCommandBuffers(renderer);
+    CreateSyncObjects(renderer);
+
+    std::cout << "after InitRender_Vulkan() with vkRenderPass: " << renderer->data.vkRenderPass << std::endl;
+}
 
 VkResult AcquireNextImage(Renderer* renderer, uint32_t* imageIndex)
 {

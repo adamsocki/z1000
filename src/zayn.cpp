@@ -6,6 +6,8 @@
 #define OPENGL 0
 #define METAL  0
 
+
+
 #include "DataTypes.h"
 #include "math/math.h"
 
@@ -13,6 +15,9 @@
 
 #include <iostream>
 #include <optional>
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_vulkan.h"
 #include "managers/memory.cpp"
 #include "managers/time.cpp"
 #include "managers/window.cpp"

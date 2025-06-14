@@ -10,6 +10,9 @@
 #define PROJECT_DIR_MAC "/Users/adamsocki/dev/clion/z1000/"
 
 #define GLFW_INCLUDE_VULKAN
+
+#define IMGUI 1
+
 #include <GLFW/glfw3.h>
 #include <tiny_obj_loader.h>
 #include <vulkan/vulkan.h>
