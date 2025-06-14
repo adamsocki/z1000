@@ -34,5 +34,5 @@ void InitRender(Zayn* zaynMem)
 	#endif
 
 	std::cout << "init render()" << std::endl;
-	
+
 }
