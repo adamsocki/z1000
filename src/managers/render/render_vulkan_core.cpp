@@ -246,7 +246,7 @@ void RenderInstancedMeshesAlternative(Zayn* zaynMem, VkCommandBuffer commandBuff
         }
     }
 
-    // Second pass: render each batch
+    // Second pass: render each batch separately
     for (auto& [key, batch] : renderBatches) {
         if (batch.instanceData.empty()) continue;
 
@@ -254,7 +254,8 @@ void RenderInstancedMeshesAlternative(Zayn* zaynMem, VkCommandBuffer commandBuff
         Material* material = batch.material;
         uint32_t frameIndex = zaynMem->renderer.data.vkCurrentFrame % MAX_FRAMES_IN_FLIGHT;
 
-        // Update instance buffer for this batch with complete instance data
+        // CRITICAL FIX: Update the instance buffer with ONLY this batch's data
+        // This ensures each draw call uses the correct instance data
         for (size_t i = 0; i < batch.instanceData.size(); i++) {
             ((InstancedData*)mesh->instanceBufferMapped)[i] = batch.instanceData[i];
         }
@@ -286,7 +287,7 @@ void RenderInstancedMeshesAlternative(Zayn* zaynMem, VkCommandBuffer commandBuff
             vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, zaynMem->renderer.data.vkPipelineLayout, 0, 1, &set, 0, nullptr);
         }
 
-        // Bind buffers and draw
+        // Bind buffers and draw this specific batch
         VkBuffer vertexBuffers[] = { mesh->vertexBuffer, mesh->instanceBuffer };
         VkDeviceSize offsets[] = { 0, 0 };
         vkCmdBindVertexBuffers(commandBuffer, 0, 2, vertexBuffers, offsets);
@@ -295,6 +296,11 @@ void RenderInstancedMeshesAlternative(Zayn* zaynMem, VkCommandBuffer commandBuff
         // Draw only the instances in this batch
         vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh->indices.size()),
                         static_cast<uint32_t>(batch.instanceData.size()), 0, 0, 0);
+        
+        // Debug output to help track what's being rendered
+        printf("Rendered batch: mesh=%s, material=%s, instances=%zu, color=(%.1f,%.1f,%.1f)\n",
+               mesh->name.c_str(), material->name.c_str(), batch.instanceData.size(),
+               material->objectColor.x, material->objectColor.y, material->objectColor.z);
     }
 }
 
