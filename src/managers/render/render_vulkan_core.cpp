@@ -213,7 +213,7 @@ void RenderInstancedMeshesAlternative(Zayn* zaynMem, VkCommandBuffer commandBuff
     struct RenderBatch {
         Mesh* mesh;
         Material* material;
-        std::vector<mat4> transforms;
+        std::vector<InstancedData> instanceData;
         std::vector<EntityHandle> entities;
     };
 
@@ -240,7 +240,7 @@ void RenderInstancedMeshesAlternative(Zayn* zaynMem, VkCommandBuffer commandBuff
                 auto key = std::make_pair(mesh, material);
                 renderBatches[key].mesh = mesh;
                 renderBatches[key].material = material;
-                renderBatches[key].transforms.push_back(mesh->instanceData[j].modelMatrix);
+                renderBatches[key].instanceData.push_back(mesh->instanceData[j]);
                 renderBatches[key].entities.push_back(entityHandle);
             }
         }
@@ -248,15 +248,15 @@ void RenderInstancedMeshesAlternative(Zayn* zaynMem, VkCommandBuffer commandBuff
 
     // Second pass: render each batch
     for (auto& [key, batch] : renderBatches) {
-        if (batch.transforms.empty()) continue;
+        if (batch.instanceData.empty()) continue;
 
         Mesh* mesh = batch.mesh;
         Material* material = batch.material;
         uint32_t frameIndex = zaynMem->renderer.data.vkCurrentFrame % MAX_FRAMES_IN_FLIGHT;
 
-        // Update instance buffer for this batch
-        for (size_t i = 0; i < batch.transforms.size(); i++) {
-            ((InstancedData*)mesh->instanceBufferMapped)[i].modelMatrix = batch.transforms[i];
+        // Update instance buffer for this batch with complete instance data
+        for (size_t i = 0; i < batch.instanceData.size(); i++) {
+            ((InstancedData*)mesh->instanceBufferMapped)[i] = batch.instanceData[i];
         }
 
         VkDescriptorSet& set = material->descriptorSets[frameIndex];
@@ -294,7 +294,7 @@ void RenderInstancedMeshesAlternative(Zayn* zaynMem, VkCommandBuffer commandBuff
 
         // Draw only the instances in this batch
         vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh->indices.size()),
-                        static_cast<uint32_t>(batch.transforms.size()), 0, 0, 0);
+                        static_cast<uint32_t>(batch.instanceData.size()), 0, 0, 0);
     }
 }
 
