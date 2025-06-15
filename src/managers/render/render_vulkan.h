@@ -5,6 +5,8 @@
 #include <glm/glm.hpp>
 #include <optional>
 
+
+
 struct Vertex {
         glm::vec3 pos;
         glm::vec3 color;
@@ -169,6 +171,12 @@ struct SwapChainSupportDetails {
 struct ModelPushConstant
 {
 	mat4 model_1;
+};
+
+struct LightingPushConstant
+{
+	alignas(16) glm::vec3 lightColor;    // Color of the light source
+	alignas(16) glm::vec3 objectColor;   // Base color of the object
 };
 
 struct UniformBufferObject
