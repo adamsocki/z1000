@@ -25,6 +25,9 @@ void InitLevelEditor(LevelEditor* editor) {
     editor->selectedMaterialForCreation = 0;
     editor->requestCreateEntity = false;
     editor->entitySpawnPosition = V3(0, 0, 0);
+    
+    // Initialize light creation settings
+    editor->lightColorForCreation = V3(1, 1, 1);  // Default white light
 }
 
 void SelectEntity(LevelEditor* editor, EntityHandle handle, EntityType type) {
@@ -254,18 +257,37 @@ EntityHandle CreateEntityAtPosition(Zayn* zaynMem, EntityType entityType, vec3 p
             
             if (light) {
                 light->position = position;
-                light->color = V3(1, 1, 1);  // White light by default
+                light->color = zaynMem->levelEditor.lightColorForCreation;  // Use color from UI
                 light->isActive = true;
                 
                 // Optionally assign a small mesh for visual representation in editor
                 if (meshIndex >= 0 && meshIndex < zaynMem->meshFactory.meshes.count) {
                     light->mesh = &zaynMem->meshFactory.meshes[meshIndex];
-                    
-                    // Add to renderer for visual debugging
-                    if (light->mesh) {
-                        mat4 transform = TRS(position, V3(0,0,0), V3(0.2f, 0.2f, 0.2f)); // Small scale
-                        AddMeshInstance(light->mesh, handle, transform);
+                }
+                
+                // Assign material - light sources should NOT use lighting materials
+                // Find first non-lighting material for light source visual representation
+                light->material = nullptr;
+                for (uint32 i = 0; i < zaynMem->materialFactory.materials.count; i++) {
+                    Material* mat = &zaynMem->materialFactory.materials[i];
+                    if (mat->type != MATERIAL_LIGHTING) {
+                        light->material = mat;
+                        break;
                     }
+                }
+                
+                // If user specifically selected a material and it's not lighting, use it
+                if (materialIndex >= 0 && materialIndex < zaynMem->materialFactory.materials.count) {
+                    Material* selectedMat = &zaynMem->materialFactory.materials[materialIndex];
+                    if (selectedMat->type != MATERIAL_LIGHTING) {
+                        light->material = selectedMat;
+                    }
+                }
+                
+                // Add to renderer for visual debugging if we have both mesh and material
+                if (light->mesh && light->material) {
+                    mat4 transform = TRS(position, V3(0,0,0), V3(0.2f, 0.2f, 0.2f)); // Small scale
+                    AddMeshInstance(light->mesh, handle, transform);
                 }
                 
                 // Add to game data

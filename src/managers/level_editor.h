@@ -38,4 +38,7 @@ struct LevelEditor {
     int selectedMaterialForCreation;
     bool requestCreateEntity;
     vec3 entitySpawnPosition;
+    
+    // Light creation settings
+    vec3 lightColorForCreation;
 };

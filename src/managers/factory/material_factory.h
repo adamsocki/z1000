@@ -5,7 +5,8 @@
 enum MaterialType
 {
     MATERIAL_PBR,
-    MATERIAL_UNLIT
+    MATERIAL_UNLIT,
+    MATERIAL_LIGHTING  // For basic lighting system following LearnOpenGL Colors tutorial
 };
 
 
@@ -27,6 +28,15 @@ struct Material {
     // float color[4];
     //  float metallic;
     // float roughness;
+    
+    // For lighting materials - object color following LearnOpenGL Colors tutorial
+    vec3 objectColor = V3(1.0f, 1.0f, 1.0f);  // Default white
+    
+    // Per-material lighting uniform buffers (only used for MATERIAL_LIGHTING)
+    std::vector<VkBuffer> lightingUniformBuffers;
+    std::vector<VkDeviceMemory> lightingUniformBuffersMemory;
+    std::vector<void*> lightingUniformBuffersMapped;
+    
     bool isInitialized = false;
 };
 

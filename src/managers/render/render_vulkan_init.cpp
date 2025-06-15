@@ -1425,6 +1425,14 @@ void CreateUniformBuffer(Renderer* renderer, std::vector<VkBuffer>& uniformBuffe
     }
 }
 
+// Overload for creating single uniform buffers (for per-material use)
+void CreateUniformBuffer(Zayn* zaynMem, VkBuffer* uniformBuffer, VkDeviceMemory* uniformBufferMemory, void** uniformBufferMapped, size_t bufferSize)
+{
+    Renderer* renderer = &zaynMem->renderer;
+    CreateBuffer(renderer, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, *uniformBuffer, *uniformBufferMemory);
+    vkMapMemory(renderer->data.vkDevice, *uniformBufferMemory, 0, bufferSize, 0, uniformBufferMapped);
+}
+
 void CreateCommandBuffers(Renderer* renderer)
 {
     renderer->data.vkCommandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
