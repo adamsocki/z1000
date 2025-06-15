@@ -4,9 +4,14 @@
 #include <vulkan/vulkan.h>
 #include <glm/glm.hpp>
 #include <optional>
+#include <unordered_map>
+#include <string>
+
+using mat4 = glm::mat4;
+using uint32 = uint32_t;
 
 struct InstancedData {
-	mat4 modelMatrix;
+	glm::mat4 modelMatrix;
 	glm::vec3 objectColor;  // Per-instance color for lighting materials
 	float materialIndex;    // Index to identify which material this instance uses
 };

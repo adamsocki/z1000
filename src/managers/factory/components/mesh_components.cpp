@@ -4,8 +4,12 @@
 
 #include <vulkan/vulkan.h>
 #include <cstring>
+#include "../mesh_factory.h"
+#include "../../render/render_vulkan.h"
 
 #define MAX_INSTANCES 1000
+
+void CreateBuffer(Data* renderer, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
 
 void CreateInstanceBuffer(Mesh* mesh, Data* renderer) {
     VkDeviceSize bufferSize = sizeof(InstancedData) * MAX_INSTANCES;

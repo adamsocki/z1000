@@ -2,7 +2,12 @@
 // Created by Adam Socki on 6/4/25.
 //
 
-
+#include <vector>
+#include <unordered_map>
+#include <string>
+#include <vulkan/vulkan.h>
+#include "../render/render_vulkan.h"
+#include "../../utils/dynamic_array.h"
 
 struct Mesh {
     std::vector<InstancedData> instances;
