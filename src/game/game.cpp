@@ -4,9 +4,11 @@
 
 
 #include "entities/WallEntity.cpp"
+#include "entities/LightSourceEntity.cpp"
 
 void InitEntityHandleBuffers(GameData* gameData, MemoryArena* arena) {
     gameData->walls = MakeDynamicArray<EntityHandle>(arena, 10);
+    gameData->lightSources = MakeDynamicArray<EntityHandle>(arena, 10);
 
 }
 

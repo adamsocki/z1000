@@ -1482,6 +1482,8 @@ CMakeFiles/z1000.dir/src/main.cpp.o
  /Users/adamsocki/dev/clion/z1000/build/_deps/tinyobjloader-src/tiny_obj_loader.h
  /Users/adamsocki/dev/clion/z1000/src/DataTypes.h
  /Users/adamsocki/dev/clion/z1000/src/dynamicArray.h
+ /Users/adamsocki/dev/clion/z1000/src/game/entities/LightSourceEntity.cpp
+ /Users/adamsocki/dev/clion/z1000/src/game/entities/LightSourceEntity.h
  /Users/adamsocki/dev/clion/z1000/src/game/entities/WallEntity.cpp
  /Users/adamsocki/dev/clion/z1000/src/game/entities/WallEntity.h
  /Users/adamsocki/dev/clion/z1000/src/game/game.cpp

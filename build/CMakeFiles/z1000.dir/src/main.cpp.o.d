@@ -1615,6 +1615,7 @@ CMakeFiles/z1000.dir/src/main.cpp.o: \
   /Users/adamsocki/dev/clion/z1000/src/managers/level_editor.h \
   /Users/adamsocki/dev/clion/z1000/src/game/game.h \
   /Users/adamsocki/dev/clion/z1000/src/game/entities/WallEntity.h \
+  /Users/adamsocki/dev/clion/z1000/src/game/entities/LightSourceEntity.h \
   /Users/adamsocki/dev/clion/z1000/build/_deps/imgui-src/imgui.h \
   /Users/adamsocki/dev/clion/z1000/build/_deps/imgui-src/imconfig.h \
   /Users/adamsocki/dev/clion/z1000/build/_deps/imgui-src/backends/imgui_impl_glfw.h \
@@ -1738,4 +1739,5 @@ CMakeFiles/z1000.dir/src/main.cpp.o: \
   /Users/adamsocki/dev/clion/z1000/build/_deps/nlohmann_json-src/include/nlohmann/thirdparty/hedley/hedley_undef.hpp \
   /Users/adamsocki/dev/clion/z1000/src/managers/level_editor.cpp \
   /Users/adamsocki/dev/clion/z1000/src/game/game.cpp \
-  /Users/adamsocki/dev/clion/z1000/src/game/entities/WallEntity.cpp
+  /Users/adamsocki/dev/clion/z1000/src/game/entities/WallEntity.cpp \
+  /Users/adamsocki/dev/clion/z1000/src/game/entities/LightSourceEntity.cpp

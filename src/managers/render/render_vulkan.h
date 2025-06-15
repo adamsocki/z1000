@@ -177,6 +177,13 @@ struct UniformBufferObject
         alignas(16) glm::mat4 proj;
     };
 
+// Simple lighting uniform buffer following LearnOpenGL Colors tutorial
+struct LightingUniformBuffer
+    {
+        alignas(16) glm::vec3 lightColor;    // Color of the light source
+        alignas(16) glm::vec3 objectColor;   // Base color of the object (will be multiplied by light)
+    };
+
 
 struct Data
 {
@@ -255,6 +262,19 @@ struct Data
     VkDescriptorPool vkDescriptorPool;
     VkDescriptorPool vkDescriptorPool_blank;
     std::vector<VkDescriptorSet> vkDescriptorSets;
+    
+    // Lighting system additions
+    VkDescriptorSetLayout vkLightingDescriptorSetLayout;
+    VkDescriptorPool vkLightingDescriptorPool;
+    VkPipeline vkLightingGraphicsPipeline;
+    VkPipelineLayout vkLightingPipelineLayout;
+    VkShaderModule vkLightingVertShaderModule;
+    VkShaderModule vkLightingFragShaderModule;
+    std::vector<VkBuffer> vkLightingUniformBuffers;
+    std::vector<VkDeviceMemory> vkLightingUniformBuffersMemory;
+    std::vector<void *> vkLightingUniformBuffersMapped;
+    std::vector<VkDescriptorSet> vkLightingDescriptorSets;
+    
     uint32_t vkCurrentFrame = 0;
     uint32 vkCurrentImageIndex;
     bool vkIsFrameStarted = false;

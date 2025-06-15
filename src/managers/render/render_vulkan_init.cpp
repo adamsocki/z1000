@@ -1152,7 +1152,7 @@ void CreateBuffer(Renderer* renderer, VkDeviceSize size, VkBufferUsageFlags usag
     vkBindBufferMemory(renderer->data.vkDevice, buffer, bufferMemory, 0);
 }
 
-void CreateDescriptorSetLayout(Renderer* renderer, VkDescriptorSetLayout* descriptorSetLayout, bool hasImage)
+void CreateDescriptorSetLayout(Renderer* renderer, VkDescriptorSetLayout* descriptorSetLayout, bool hasImage, bool hasLighting = false)
 {
     std::vector<VkDescriptorSetLayoutBinding> bindings = {};
     VkDescriptorSetLayoutBinding uboLayoutBinding{};
@@ -1171,6 +1171,16 @@ void CreateDescriptorSetLayout(Renderer* renderer, VkDescriptorSetLayout* descri
         samplerLayoutBinding.pImmutableSamplers = nullptr;
         samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
         bindings.push_back(samplerLayoutBinding);
+    }
+
+    if (hasLighting)
+    {
+        VkDescriptorSetLayoutBinding lightingLayoutBinding{};
+        lightingLayoutBinding.binding = 2;
+        lightingLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        lightingLayoutBinding.descriptorCount = 1;
+        lightingLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        bindings.push_back(lightingLayoutBinding);
     }
 
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
@@ -1498,7 +1508,15 @@ void InitRender_Vulkan(Renderer* renderer, WindowManager* window)
 
     CreateGraphicsPipeline(renderer, &renderer->data.vkGraphicsPipeline, GetShaderPath("vkShader_3d_vert.spv"), GetShaderPath("vkShader_3d_frag.spv"), renderer->data.vkPushConstantRanges, &renderer->data.vkDescriptorSetLayout, &renderer->data.vkPipelineLayout);
 
+    // Create lighting pipeline following LearnOpenGL Colors tutorial
+    CreateDescriptorSetLayout(renderer, &renderer->data.vkLightingDescriptorSetLayout, true, true);
+    CreateDescriptorPool(renderer, &renderer->data.vkLightingDescriptorPool, true);
+    CreateGraphicsPipeline(renderer, &renderer->data.vkLightingGraphicsPipeline, GetShaderPath("vkShader_lighting_basic_vert.spv"), GetShaderPath("vkShader_lighting_basic_frag.spv"), renderer->data.vkPushConstantRanges, &renderer->data.vkLightingDescriptorSetLayout, &renderer->data.vkLightingPipelineLayout);
+
     CreateUniformBuffer(renderer, renderer->data.vkUniformBuffers, renderer->data.vkUniformBuffersMemory, renderer->data.vkUniformBuffersMapped);
+    
+    // Create lighting uniform buffers
+    CreateUniformBuffer(renderer, renderer->data.vkLightingUniformBuffers, renderer->data.vkLightingUniformBuffersMemory, renderer->data.vkLightingUniformBuffersMapped);
 
     CreateCommandBuffers(renderer);
     CreateSyncObjects(renderer);

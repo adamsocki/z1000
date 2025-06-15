@@ -5,6 +5,11 @@ layout(binding = 0) uniform UniformBufferObject {
     mat4 proj;
 } ubo;
 
+layout(binding = 2) uniform LightingUniformBuffer {
+    vec3 lightColor;
+    vec3 objectColor;
+} lighting;
+
 // Vertex attributes
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inColor;

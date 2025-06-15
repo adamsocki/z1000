@@ -248,6 +248,36 @@ EntityHandle CreateEntityAtPosition(Zayn* zaynMem, EntityType entityType, vec3 p
             return handle;
         }
         
+        case EntityType_LightSource: {
+            EntityHandle handle = AddEntity(&zaynMem->entityFactory, EntityType_LightSource);
+            LightSourceEntity* light = (LightSourceEntity*)GetEntity(&zaynMem->entityFactory, handle);
+            
+            if (light) {
+                light->position = position;
+                light->color = V3(1, 1, 1);  // White light by default
+                light->isActive = true;
+                
+                // Optionally assign a small mesh for visual representation in editor
+                if (meshIndex >= 0 && meshIndex < zaynMem->meshFactory.meshes.count) {
+                    light->mesh = &zaynMem->meshFactory.meshes[meshIndex];
+                    
+                    // Add to renderer for visual debugging
+                    if (light->mesh) {
+                        mat4 transform = TRS(position, V3(0,0,0), V3(0.2f, 0.2f, 0.2f)); // Small scale
+                        AddMeshInstance(light->mesh, handle, transform);
+                    }
+                }
+                
+                // Add to game data
+                PushBack(&zaynMem->gameData.lightSources, handle);
+                
+                printf("Created light source with color (%.1f, %.1f, %.1f)\n", 
+                       light->color.x, light->color.y, light->color.z);
+            }
+            
+            return handle;
+        }
+        
         // Add other entity types here as needed
         default:
             printf("Entity type %d not yet supported for creation\n", entityType);

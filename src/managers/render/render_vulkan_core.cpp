@@ -101,6 +101,26 @@ void UpdateUniformBuffer(uint32_t currentImage, Renderer* renderer, Camera* cam)
     memcpy(renderer->data.vkUniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
 
+void UpdateLightingUniformBuffer(uint32_t currentImage, Renderer* renderer, Zayn* zaynMem)
+{
+    LightingUniformBuffer lightingUbo = {};
+    
+    // Set default lighting values following LearnOpenGL Colors tutorial
+    lightingUbo.lightColor = glm::vec3(1.0f, 1.0f, 1.0f);    // White light
+    lightingUbo.objectColor = glm::vec3(1.0f, 0.5f, 0.31f);  // Coral object color
+    
+    // If we have light sources, use the first one
+    if (zaynMem->gameData.lightSources.count > 0) {
+        EntityHandle lightHandle = zaynMem->gameData.lightSources[0];
+        LightSourceEntity* light = (LightSourceEntity*)GetEntity(&zaynMem->entityFactory, lightHandle);
+        if (light) {
+            lightingUbo.lightColor = glm::vec3(light->color.x, light->color.y, light->color.z);
+        }
+    }
+    
+    memcpy(renderer->data.vkLightingUniformBuffersMapped[currentImage], &lightingUbo, sizeof(lightingUbo));
+}
+
 void BeginSwapChainRenderPass(Renderer* renderer, VkCommandBuffer commandBuffer)
 {
     assert(renderer->data.vkIsFrameStarted && "Can't call beginSwapChainRenderPass if frame is not in progress");
@@ -312,6 +332,7 @@ void UpdateRenderer(Zayn* zaynMem, Renderer* renderer, WindowManager* windowMana
     {
 
         UpdateUniformBuffer(renderer->data.vkCurrentFrame, renderer, camera);
+        UpdateLightingUniformBuffer(renderer->data.vkCurrentFrame, renderer, zaynMem);
         BeginSwapChainRenderPass(renderer, renderer->data.vkCommandBuffers[renderer->data.vkCurrentFrame]);
 
         if (false) {
@@ -528,7 +549,7 @@ void UpdateMyImgui(Zayn* zaynMem, LevelEditor* editor, Camera* camera, Renderer*
         ImGui::Text("Entity Creation");
 
         // Entity type selection
-        const char* entityTypeNames[] = {"Player", "Floor", "Piano", "Wall"};
+        const char* entityTypeNames[] = {"Player", "Floor", "Piano", "Wall", "Light Source"};
         ImGui::Text("Entity Type:");
         ImGui::Combo("##EntityType", &editor->selectedEntityTypeForCreation, entityTypeNames, EntityType_Count);
         
@@ -578,6 +599,7 @@ void UpdateMyImgui(Zayn* zaynMem, LevelEditor* editor, Camera* camera, Renderer*
         ImGui::Separator();
         ImGui::Text("Statistics");
         ImGui::Text("Walls: %d", zaynMem->gameData.walls.count);
+        ImGui::Text("Light Sources: %d", zaynMem->gameData.lightSources.count);
     }
     ImGui::End();
 
