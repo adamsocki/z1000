@@ -5,7 +5,11 @@
 #include <glm/glm.hpp>
 #include <optional>
 
-
+struct InstancedData {
+	mat4 modelMatrix;
+	glm::vec3 objectColor;  // Per-instance color for lighting materials
+	float materialIndex;    // Index to identify which material this instance uses
+};
 
 struct Vertex {
         glm::vec3 pos;
