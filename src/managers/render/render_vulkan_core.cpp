@@ -189,7 +189,7 @@ void ClearMeshInstances(Mesh* mesh) {
     mesh->instanceDataRequiresGpuUpdate = true;
 }
 
-void AddMeshInstance(Mesh* mesh, EntityHandle entityHandle, mat4 modelMatrix) {
+void AddMeshInstance(Mesh* mesh, EntityHandle entityHandle, mat4 modelMatrix, vec3 objectColor, float materialIndex) {
     if (mesh->instanceCount >= mesh->maxInstances) {
         std::cout << "ERROR: Mesh instance limit reached!" << std::endl;
         return;
@@ -197,13 +197,15 @@ void AddMeshInstance(Mesh* mesh, EntityHandle entityHandle, mat4 modelMatrix) {
 
     InstancedData instanceData = {};
     instanceData.modelMatrix = modelMatrix;
+    instanceData.objectColor = glm::vec3(objectColor.x, objectColor.y, objectColor.z);
+    instanceData.materialIndex = materialIndex;
 
     PushBack(&mesh->instanceData, instanceData);
     PushBack(&mesh->registeredEntities, entityHandle);
     mesh->instanceCount++;
     mesh->instanceDataRequiresGpuUpdate = true;
 
-    std::cout << "Added mesh instance. Total instances: " << mesh->instanceCount << std::endl;
+    std::cout << "Added mesh instance with color (" << objectColor.x << "," << objectColor.y << "," << objectColor.z << "). Total instances: " << mesh->instanceCount << std::endl;
 }
 
 void RenderInstancedMeshesAlternative(Zayn* zaynMem, VkCommandBuffer commandBuffer) {

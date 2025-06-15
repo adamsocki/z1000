@@ -63,9 +63,10 @@ struct Vertex {
             return attributeDescriptions;
         }
 
-        static std::array<VkVertexInputAttributeDescription, 8> getAttributeDescriptions_instanced() {
-            std::array<VkVertexInputAttributeDescription, 8> attributeDescriptions{};
+        static std::array<VkVertexInputAttributeDescription, 10> getAttributeDescriptions_instanced() {
+            std::array<VkVertexInputAttributeDescription, 10> attributeDescriptions{};
 
+            // Vertex attributes (binding 0)
             attributeDescriptions[0].binding = 0;
             attributeDescriptions[0].location = 0;
             attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
@@ -86,25 +87,38 @@ struct Vertex {
             attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
             attributeDescriptions[3].offset = offsetof(Vertex, normal);
 
-            attributeDescriptions[4].binding = 1; // Assuming binding 1 for instance data
+            // Instance attributes (binding 1) - Model Matrix (4x4)
+            attributeDescriptions[4].binding = 1;
             attributeDescriptions[4].location = 4;
             attributeDescriptions[4].format = VK_FORMAT_R32G32B32A32_SFLOAT;
             attributeDescriptions[4].offset = offsetof(InstancedData, modelMatrix) + sizeof(glm::vec4) * 0;
 
-            attributeDescriptions[5].binding = 1; // Assuming binding 1 for instance data
+            attributeDescriptions[5].binding = 1;
             attributeDescriptions[5].location = 5;
             attributeDescriptions[5].format = VK_FORMAT_R32G32B32A32_SFLOAT;
             attributeDescriptions[5].offset = offsetof(InstancedData, modelMatrix) + sizeof(glm::vec4) * 1;
 
-            attributeDescriptions[6].binding = 1; // Assuming binding 1 for instance data
+            attributeDescriptions[6].binding = 1;
             attributeDescriptions[6].location = 6;
             attributeDescriptions[6].format = VK_FORMAT_R32G32B32A32_SFLOAT;
             attributeDescriptions[6].offset = offsetof(InstancedData, modelMatrix) + sizeof(glm::vec4) * 2;
 
-            attributeDescriptions[7].binding = 1; // Assuming binding 1 for instance data
+            attributeDescriptions[7].binding = 1;
             attributeDescriptions[7].location = 7;
             attributeDescriptions[7].format = VK_FORMAT_R32G32B32A32_SFLOAT;
             attributeDescriptions[7].offset = offsetof(InstancedData, modelMatrix) + sizeof(glm::vec4) * 3;
+
+            // Instance attributes - Object Color
+            attributeDescriptions[8].binding = 1;
+            attributeDescriptions[8].location = 8;
+            attributeDescriptions[8].format = VK_FORMAT_R32G32B32_SFLOAT;
+            attributeDescriptions[8].offset = offsetof(InstancedData, objectColor);
+
+            // Instance attributes - Material Index
+            attributeDescriptions[9].binding = 1;
+            attributeDescriptions[9].location = 9;
+            attributeDescriptions[9].format = VK_FORMAT_R32_SFLOAT;
+            attributeDescriptions[9].offset = offsetof(InstancedData, materialIndex);
 
             return attributeDescriptions;
         }
