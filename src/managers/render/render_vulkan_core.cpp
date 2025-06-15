@@ -307,8 +307,8 @@ void RenderEntities(Zayn* zaynMem, VkCommandBuffer commandBuffer) {
     EntityFactory* entityFactory = &zaynMem->entityFactory;
     ComponentsFactory * componentfactory = &zaynMem->componentsFactory;
 
-    RenderInstancedMeshes(zaynMem, commandBuffer);
-    // RenderInstancedMeshesAlternative(zaynMem, commandBuffer);
+    // RenderInstancedMeshes(zaynMem, commandBuffer);
+    RenderInstancedMeshesAlternative(zaynMem, commandBuffer);
 
     for (int i = 0; i < entityFactory->activeEntityHandles.count; i++) {
         EntityHandle* entityHandle = &entityFactory->activeEntityHandles[i];
