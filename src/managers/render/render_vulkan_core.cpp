@@ -208,6 +208,115 @@ void AddMeshInstance(Mesh* mesh, EntityHandle entityHandle, mat4 modelMatrix, ve
     std::cout << "Added mesh instance with color (" << objectColor.x << "," << objectColor.y << "," << objectColor.z << ") and material index " << materialIndex << ". Total instances: " << mesh->instanceCount << std::endl;
 }
 
+MaterialMeshBatch* GetOrCreateMaterialMeshBatch(Zayn* zaynMem, Mesh* mesh, Material* material) {
+    auto key = std::make_pair(mesh, material);
+    auto it = zaynMem->materialFactory.materialMeshBatches.find(key);
+    
+    if (it != zaynMem->materialFactory.materialMeshBatches.end()) {
+        return it->second;
+    }
+    
+    // Create new batch
+    MaterialMeshBatch* batch = new MaterialMeshBatch(); // Or use your memory arena
+    batch->mesh = mesh;
+    batch->material = material;
+    batch->maxInstances = 1000; // Or whatever max you want
+    batch->instanceCount = 0;
+    batch->instanceDataRequiresGpuUpdate = false;
+    
+    // Initialize dynamic arrays
+    batch->instanceData = MakeDynamicArray<InstancedData>(&zaynMem->permanentMemory, batch->maxInstances);
+    batch->registeredEntities = MakeDynamicArray<EntityHandle>(&zaynMem->permanentMemory, batch->maxInstances);
+    
+    // Create instance buffer for this batch
+    VkDeviceSize bufferSize = sizeof(InstancedData) * batch->maxInstances;
+    CreateBuffer(&zaynMem->renderer, bufferSize, 
+                 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
+                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+                 batch->instanceBuffer, batch->instanceBufferMemory);
+    
+    vkMapMemory(zaynMem->renderer.data.vkDevice, batch->instanceBufferMemory, 0, bufferSize, 0, &batch->instanceBufferMapped);
+    
+    zaynMem->materialFactory.materialMeshBatches[key] = batch;
+    return batch;
+}
+
+void AddMeshInstance(Zayn* zaynMem, Mesh* mesh, Material* material, EntityHandle entityHandle, mat4 modelMatrix) {
+    MaterialMeshBatch* batch = GetOrCreateMaterialMeshBatch(zaynMem, mesh, material);
+    
+    if (batch->instanceCount >= batch->maxInstances) {
+        std::cout << "ERROR: Material-mesh batch instance limit reached!" << std::endl;
+        return;
+    }
+    
+    InstancedData instanceData = {};
+    instanceData.modelMatrix = modelMatrix;
+    
+    PushBack(&batch->instanceData, instanceData);
+    PushBack(&batch->registeredEntities, entityHandle);
+    batch->instanceCount++;
+    batch->instanceDataRequiresGpuUpdate = true;
+}
+
+void RenderMaterialBatches(Zayn* zaynMem, VkCommandBuffer commandBuffer) {
+    uint32_t frameIndex = zaynMem->renderer.data.vkCurrentFrame % MAX_FRAMES_IN_FLIGHT;
+    
+    // Get current light color for lighting materials
+    vec3 globalLightColor = V3(1.0f, 1.0f, 1.0f);
+    if (zaynMem->gameData.lightSources.count > 0) {
+        EntityHandle lightHandle = zaynMem->gameData.lightSources[0];
+        LightSourceEntity* light = (LightSourceEntity*)GetEntity(&zaynMem->entityFactory, lightHandle);
+        if (light) {
+            globalLightColor = light->color;
+        }
+    }
+    
+    // Render each material batch
+    for (auto& [key, batch] : zaynMem->materialFactory.materialMeshBatches) {
+        if (batch->instanceCount == 0) continue;
+        
+        // Update instance buffer if needed
+        if (batch->instanceDataRequiresGpuUpdate) {
+            for (uint32_t i = 0; i < batch->instanceCount; i++) {
+                ((InstancedData*)batch->instanceBufferMapped)[i] = batch->instanceData[i];
+            }
+            batch->instanceDataRequiresGpuUpdate = false;
+        }
+        
+        Material* material = batch->material;
+        Mesh* mesh = batch->mesh;
+        
+        // Bind appropriate pipeline and update uniforms based on material type
+        if (material->type == MATERIAL_LIGHTING) {
+            // Update this material's specific uniform buffer
+            LightingUniformBuffer lightingUbo = {};
+            lightingUbo.lightColor = glm::vec3(globalLightColor.x, globalLightColor.y, globalLightColor.z);
+            lightingUbo.objectColor = glm::vec3(material->objectColor.x, material->objectColor.y, material->objectColor.z);
+            memcpy(material->lightingUniformBuffersMapped[frameIndex], &lightingUbo, sizeof(lightingUbo));
+            
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, zaynMem->renderer.data.vkLightingGraphicsPipeline);
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, 
+                                  zaynMem->renderer.data.vkLightingPipelineLayout, 0, 1, 
+                                  &material->descriptorSets[frameIndex], 0, nullptr);
+        } else {
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, zaynMem->renderer.data.vkGraphicsPipeline);
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, 
+                                  zaynMem->renderer.data.vkPipelineLayout, 0, 1, 
+                                  &material->descriptorSets[frameIndex], 0, nullptr);
+        }
+        
+        // Bind vertex and instance buffers
+        VkBuffer vertexBuffers[] = { mesh->vertexBuffer, batch->instanceBuffer };
+        VkDeviceSize offsets[] = { 0, 0 };
+        vkCmdBindVertexBuffers(commandBuffer, 0, 2, vertexBuffers, offsets);
+        vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        
+        // Draw this batch
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh->indices.size()), 
+                        batch->instanceCount, 0, 0, 0);
+    }
+}
+
 void RenderInstancedMeshesAlternative(Zayn* zaynMem, VkCommandBuffer commandBuffer) {
     // Create a temporary structure to batch by mesh+material combination
     struct RenderBatch {
@@ -311,13 +420,69 @@ void RenderInstancedMeshes(Zayn* zaynMem, VkCommandBuffer commandBuffer) {
 
 void RenderEntities(Zayn* zaynMem, VkCommandBuffer commandBuffer) {
     EntityFactory* entityFactory = &zaynMem->entityFactory;
-    ComponentsFactory * componentfactory = &zaynMem->componentsFactory;
+    
+    // Clear all batches first
+    for (auto& [key, batch] : zaynMem->materialFactory.materialMeshBatches) {
+        batch->instanceCount = 0;
+        batch->instanceData.count = 0;
+        batch->registeredEntities.count = 0;
+    }
+    
+    // Populate batches with active entities
+    for (uint32_t i = 0; i < zaynMem->gameData.walls.count; i++) {
+        EntityHandle handle = zaynMem->gameData.walls[i];
+        WallEntity* wall = (WallEntity*)GetEntity(&zaynMem->entityFactory, handle);
+        if (wall && wall->isActive && wall->mesh && wall->material) {
+            mat4 transform = TRS(wall->position, wall->rotation, wall->scale);
+            AddMeshInstance(zaynMem, wall->mesh, wall->material, handle, transform);
+        }
+    }
+    
+    // Add light sources if they have visual representation
+    for (uint32_t i = 0; i < zaynMem->gameData.lightSources.count; i++) {
+        EntityHandle handle = zaynMem->gameData.lightSources[i];
+        LightSourceEntity* light = (LightSourceEntity*)GetEntity(&zaynMem->entityFactory, handle);
+        if (light && light->isActive && light->mesh && light->material) {
+            mat4 transform = TRS(light->position, V3(0,0,0), V3(0.2f, 0.2f, 0.2f));
+            AddMeshInstance(zaynMem, light->mesh, light->material, handle, transform);
+        }
+    }
+    
+    // Render all batches
+    RenderMaterialBatches(zaynMem, commandBuffer);
+}
 
-    // RenderInstancedMeshes(zaynMem, commandBuffer);
-    RenderInstancedMeshesAlternative(zaynMem, commandBuffer);
+void UpdateEntityTransform(Zayn* zaynMem, EntityHandle handle, EntityType type, mat4 newTransform) {
+    // Find which batch this entity is in
+    for (auto& [key, batch] : zaynMem->materialFactory.materialMeshBatches) {
+        for (uint32_t i = 0; i < batch->instanceCount; i++) {
+            if (batch->registeredEntities[i].indexInInfo == handle.indexInInfo &&
+                batch->registeredEntities[i].generation == handle.generation) {
+                
+                batch->instanceData[i].modelMatrix = newTransform;
+                batch->instanceDataRequiresGpuUpdate = true;
+                return;
+            }
+        }
+    }
+}
 
-    for (int i = 0; i < entityFactory->activeEntityHandles.count; i++) {
-        EntityHandle* entityHandle = &entityFactory->activeEntityHandles[i];
+void RemoveEntityFromBatches(Zayn* zaynMem, EntityHandle handle) {
+    for (auto& [key, batch] : zaynMem->materialFactory.materialMeshBatches) {
+        for (uint32_t i = 0; i < batch->instanceCount; i++) {
+            if (batch->registeredEntities[i].indexInInfo == handle.indexInInfo &&
+                batch->registeredEntities[i].generation == handle.generation) {
+                
+                // Remove by swapping with last
+                if (i < batch->instanceCount - 1) {
+                    batch->instanceData[i] = batch->instanceData[batch->instanceCount - 1];
+                    batch->registeredEntities[i] = batch->registeredEntities[batch->instanceCount - 1];
+                }
+                batch->instanceCount--;
+                batch->instanceDataRequiresGpuUpdate = true;
+                return;
+            }
+        }
     }
 }
 

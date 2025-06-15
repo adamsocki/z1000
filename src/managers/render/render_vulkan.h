@@ -165,6 +165,7 @@ namespace std {
             return h1 ^ (h2 << 1) ^ (h3 << 2) ^ (h4 << 3);
         }
     };
+
 }
 
 
