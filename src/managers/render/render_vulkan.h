@@ -211,6 +211,13 @@ struct LightingUniformBuffer
     };
 
 
+struct Material {
+    alignas(16) glm::vec3 ambient;
+    alignas(16) glm::vec3 diffuse;
+    alignas(16) glm::vec3 specular;
+    alignas(4) float shininess;
+};
+
 struct Data
 {
     bool vkFramebufferResized;
@@ -300,6 +307,12 @@ struct Data
     std::vector<VkDeviceMemory> vkLightingUniformBuffersMemory;
     std::vector<void *> vkLightingUniformBuffersMapped;
     std::vector<VkDescriptorSet> vkLightingDescriptorSets;
+    
+    // Material system
+    std::vector<Material> materials;
+    VkBuffer materialBuffer;
+    VkDeviceMemory materialBufferMemory;
+    void* materialBufferMapped;
     
     uint32_t vkCurrentFrame = 0;
     uint32 vkCurrentImageIndex;
