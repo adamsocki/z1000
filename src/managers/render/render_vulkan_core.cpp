@@ -205,7 +205,7 @@ void AddMeshInstance(Mesh* mesh, EntityHandle entityHandle, mat4 modelMatrix, ve
     mesh->instanceCount++;
     mesh->instanceDataRequiresGpuUpdate = true;
 
-    std::cout << "Added mesh instance with color (" << objectColor.x << "," << objectColor.y << "," << objectColor.z << "). Total instances: " << mesh->instanceCount << std::endl;
+    std::cout << "Added mesh instance with color (" << objectColor.x << "," << objectColor.y << "," << objectColor.z << ") and material index " << materialIndex << ". Total instances: " << mesh->instanceCount << std::endl;
 }
 
 void RenderInstancedMeshesAlternative(Zayn* zaynMem, VkCommandBuffer commandBuffer) {
@@ -299,61 +299,8 @@ void RenderInstancedMeshesAlternative(Zayn* zaynMem, VkCommandBuffer commandBuff
 }
 
 void RenderInstancedMeshes(Zayn* zaynMem, VkCommandBuffer commandBuffer) {
-    for (int i = 0; i < zaynMem->meshFactory.meshes.count; i++) {
-        Mesh* mesh = &zaynMem->meshFactory.meshes[i];
-
-        if (mesh->instanceCount == 0) continue;
-
-        EntityHandle firstEntity = mesh->registeredEntities[0];
-        uint32_t frameIndex = zaynMem->renderer.data.vkCurrentFrame % MAX_FRAMES_IN_FLIGHT;
-
-        Material* material = nullptr;
-        if (firstEntity.type == EntityType_Wall) {
-            WallEntity* wallEntity = (WallEntity*)GetEntity(&zaynMem->entityFactory, firstEntity);
-            material = wallEntity->material;
-        } else if (firstEntity.type == EntityType_LightSource) {
-            LightSourceEntity* lightEntity = (LightSourceEntity*)GetEntity(&zaynMem->entityFactory, firstEntity);
-            material = lightEntity->material;
-        }
-
-        if (!material) continue;
-        VkDescriptorSet& set = material->descriptorSets[frameIndex];
-
-        // Choose pipeline based on material type
-        if (material->type == MATERIAL_LIGHTING) {
-            // Update this material's lighting uniform buffer with its specific object color
-            LightingUniformBuffer lightingUbo = {};
-            lightingUbo.lightColor = glm::vec3(0.0f, 0.0f, 0.0f);  // No light by default
-            lightingUbo.objectColor = glm::vec3(material->objectColor.x, material->objectColor.y, material->objectColor.z);
-            
-            // Use light source color if available
-            if (zaynMem->gameData.lightSources.count > 0) {
-                EntityHandle lightHandle = zaynMem->gameData.lightSources[0];
-                LightSourceEntity* light = (LightSourceEntity*)GetEntity(&zaynMem->entityFactory, lightHandle);
-                if (light) {
-                    lightingUbo.lightColor = glm::vec3(light->color.x, light->color.y, light->color.z);
-                }
-            }
-            
-            // Update this specific material's uniform buffer
-            memcpy(material->lightingUniformBuffersMapped[frameIndex], &lightingUbo, sizeof(lightingUbo));
-            
-            // Debug: Print material info (remove this later)
-            printf("Rendering %s: objectColor(%.1f,%.1f,%.1f) lightColor(%.1f,%.1f,%.1f)\n", 
-                   material->name.c_str(),
-                   lightingUbo.objectColor.x, lightingUbo.objectColor.y, lightingUbo.objectColor.z,
-                   lightingUbo.lightColor.x, lightingUbo.lightColor.y, lightingUbo.lightColor.z);
-            
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, zaynMem->renderer.data.vkLightingGraphicsPipeline);
-            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, zaynMem->renderer.data.vkLightingPipelineLayout, 0, 1, &set, 0, nullptr);
-            RenderMeshInstanced(commandBuffer, mesh, set, zaynMem->renderer.data.vkLightingPipelineLayout);
-        } else {
-            // Use regular pipeline for non-lighting materials
-            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, zaynMem->renderer.data.vkGraphicsPipeline);
-            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, zaynMem->renderer.data.vkPipelineLayout, 0, 1, &set, 0, nullptr);
-            RenderMeshInstanced(commandBuffer, mesh, set, zaynMem->renderer.data.vkPipelineLayout);
-        }
-    }
+    // Use the alternative rendering method that groups by mesh+material
+    RenderInstancedMeshesAlternative(zaynMem, commandBuffer);
 }
 
 void RenderEntities(Zayn* zaynMem, VkCommandBuffer commandBuffer) {
