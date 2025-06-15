@@ -101,6 +101,30 @@ void UpdateUniformBuffer(uint32_t currentImage, Renderer* renderer, Camera* cam)
     memcpy(renderer->data.vkUniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
 
+void UpdateLightingUniformBuffer(uint32_t currentImage, Renderer* renderer, Zayn* zaynMem)
+{
+    LightingUniformBuffer lightingUbo = {};
+    
+    // Set default lighting values following LearnOpenGL Colors tutorial
+    lightingUbo.lightColor = glm::vec3(1.0f, 1.0f, 1.0f);    // White light
+    lightingUbo.objectColor = glm::vec3(1.0f, 0.5f, 0.31f);  // Default coral object color
+    
+    // If we have light sources, use the first one
+    if (zaynMem->gameData.lightSources.count > 0) {
+        EntityHandle lightHandle = zaynMem->gameData.lightSources[0];
+        LightSourceEntity* light = (LightSourceEntity*)GetEntity(&zaynMem->entityFactory, lightHandle);
+        if (light) {
+            lightingUbo.lightColor = glm::vec3(light->color.x, light->color.y, light->color.z);
+        }
+    }
+    
+    // Note: Object color will be set per-material during rendering
+    // The uniform buffer provides default values, but lighting materials
+    // can override the objectColor based on their material properties
+    
+    memcpy(renderer->data.vkLightingUniformBuffersMapped[currentImage], &lightingUbo, sizeof(lightingUbo));
+}
+
 void BeginSwapChainRenderPass(Renderer* renderer, VkCommandBuffer commandBuffer)
 {
     assert(renderer->data.vkIsFrameStarted && "Can't call beginSwapChainRenderPass if frame is not in progress");
@@ -165,7 +189,7 @@ void ClearMeshInstances(Mesh* mesh) {
     mesh->instanceDataRequiresGpuUpdate = true;
 }
 
-void AddMeshInstance(Mesh* mesh, EntityHandle entityHandle, mat4 modelMatrix) {
+void AddMeshInstance(Mesh* mesh, EntityHandle entityHandle, mat4 modelMatrix, vec3 objectColor, float materialIndex) {
     if (mesh->instanceCount >= mesh->maxInstances) {
         std::cout << "ERROR: Mesh instance limit reached!" << std::endl;
         return;
@@ -173,48 +197,292 @@ void AddMeshInstance(Mesh* mesh, EntityHandle entityHandle, mat4 modelMatrix) {
 
     InstancedData instanceData = {};
     instanceData.modelMatrix = modelMatrix;
+    instanceData.objectColor = glm::vec3(objectColor.x, objectColor.y, objectColor.z);
+    instanceData.materialIndex = materialIndex;
 
     PushBack(&mesh->instanceData, instanceData);
     PushBack(&mesh->registeredEntities, entityHandle);
     mesh->instanceCount++;
     mesh->instanceDataRequiresGpuUpdate = true;
 
-    std::cout << "Added mesh instance. Total instances: " << mesh->instanceCount << std::endl;
+    std::cout << "Added mesh instance with color (" << objectColor.x << "," << objectColor.y << "," << objectColor.z << ") and material index " << materialIndex << ". Total instances: " << mesh->instanceCount << std::endl;
+}
+
+MaterialMeshBatch* GetOrCreateMaterialMeshBatch(Zayn* zaynMem, Mesh* mesh, Material* material) {
+    auto key = std::make_pair(mesh, material);
+    auto it = zaynMem->materialFactory.materialMeshBatches.find(key);
+    
+    if (it != zaynMem->materialFactory.materialMeshBatches.end()) {
+        return it->second;
+    }
+    
+    // Create new batch
+    MaterialMeshBatch* batch = new MaterialMeshBatch(); // Or use your memory arena
+    batch->mesh = mesh;
+    batch->material = material;
+    batch->maxInstances = 1000; // Or whatever max you want
+    batch->instanceCount = 0;
+    batch->instanceDataRequiresGpuUpdate = false;
+    
+    // Initialize dynamic arrays
+    batch->instanceData = MakeDynamicArray<InstancedData>(&zaynMem->permanentMemory, batch->maxInstances);
+    batch->registeredEntities = MakeDynamicArray<EntityHandle>(&zaynMem->permanentMemory, batch->maxInstances);
+    
+    // Create instance buffer for this batch
+    VkDeviceSize bufferSize = sizeof(InstancedData) * batch->maxInstances;
+    CreateBuffer(&zaynMem->renderer, bufferSize, 
+                 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 
+                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
+                 batch->instanceBuffer, batch->instanceBufferMemory);
+    
+    vkMapMemory(zaynMem->renderer.data.vkDevice, batch->instanceBufferMemory, 0, bufferSize, 0, &batch->instanceBufferMapped);
+    
+    zaynMem->materialFactory.materialMeshBatches[key] = batch;
+    return batch;
+}
+
+void AddMeshInstance(Zayn* zaynMem, Mesh* mesh, Material* material, EntityHandle entityHandle, mat4 modelMatrix) {
+    MaterialMeshBatch* batch = GetOrCreateMaterialMeshBatch(zaynMem, mesh, material);
+    
+    if (batch->instanceCount >= batch->maxInstances) {
+        std::cout << "ERROR: Material-mesh batch instance limit reached!" << std::endl;
+        return;
+    }
+    
+    InstancedData instanceData = {};
+    instanceData.modelMatrix = modelMatrix;
+    
+    PushBack(&batch->instanceData, instanceData);
+    PushBack(&batch->registeredEntities, entityHandle);
+    batch->instanceCount++;
+    batch->instanceDataRequiresGpuUpdate = true;
+}
+
+void RenderMaterialBatches(Zayn* zaynMem, VkCommandBuffer commandBuffer) {
+    uint32_t frameIndex = zaynMem->renderer.data.vkCurrentFrame % MAX_FRAMES_IN_FLIGHT;
+    
+    // Get current light color for lighting materials
+    vec3 globalLightColor = V3(1.0f, 1.0f, 1.0f);
+    if (zaynMem->gameData.lightSources.count > 0) {
+        EntityHandle lightHandle = zaynMem->gameData.lightSources[0];
+        LightSourceEntity* light = (LightSourceEntity*)GetEntity(&zaynMem->entityFactory, lightHandle);
+        if (light) {
+            globalLightColor = light->color;
+        }
+    }
+    
+    // Render each material batch
+    for (auto& [key, batch] : zaynMem->materialFactory.materialMeshBatches) {
+        if (batch->instanceCount == 0) continue;
+        
+        // Update instance buffer if needed
+        if (batch->instanceDataRequiresGpuUpdate) {
+            for (uint32_t i = 0; i < batch->instanceCount; i++) {
+                ((InstancedData*)batch->instanceBufferMapped)[i] = batch->instanceData[i];
+            }
+            batch->instanceDataRequiresGpuUpdate = false;
+        }
+        
+        Material* material = batch->material;
+        Mesh* mesh = batch->mesh;
+        
+        // Bind appropriate pipeline and update uniforms based on material type
+        if (material->type == MATERIAL_LIGHTING) {
+            // Update this material's specific uniform buffer
+            LightingUniformBuffer lightingUbo = {};
+            lightingUbo.lightColor = glm::vec3(globalLightColor.x, globalLightColor.y, globalLightColor.z);
+            lightingUbo.objectColor = glm::vec3(material->objectColor.x, material->objectColor.y, material->objectColor.z);
+            memcpy(material->lightingUniformBuffersMapped[frameIndex], &lightingUbo, sizeof(lightingUbo));
+            
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, zaynMem->renderer.data.vkLightingGraphicsPipeline);
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, 
+                                  zaynMem->renderer.data.vkLightingPipelineLayout, 0, 1, 
+                                  &material->descriptorSets[frameIndex], 0, nullptr);
+        } else {
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, zaynMem->renderer.data.vkGraphicsPipeline);
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, 
+                                  zaynMem->renderer.data.vkPipelineLayout, 0, 1, 
+                                  &material->descriptorSets[frameIndex], 0, nullptr);
+        }
+        
+        // Bind vertex and instance buffers
+        VkBuffer vertexBuffers[] = { mesh->vertexBuffer, batch->instanceBuffer };
+        VkDeviceSize offsets[] = { 0, 0 };
+        vkCmdBindVertexBuffers(commandBuffer, 0, 2, vertexBuffers, offsets);
+        vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        
+        // Draw this batch
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh->indices.size()), 
+                        batch->instanceCount, 0, 0, 0);
+    }
+}
+
+void RenderInstancedMeshesAlternative(Zayn* zaynMem, VkCommandBuffer commandBuffer) {
+    // Create a temporary structure to batch by mesh+material combination
+    struct RenderBatch {
+        Mesh* mesh;
+        Material* material;
+        std::vector<InstancedData> instanceData;
+        std::vector<EntityHandle> entities;
+    };
+
+    std::map<std::pair<Mesh*, Material*>, RenderBatch> renderBatches;
+
+    // First pass: organize entities by mesh+material
+    for (int i = 0; i < zaynMem->meshFactory.meshes.count; i++) {
+        Mesh* mesh = &zaynMem->meshFactory.meshes[i];
+        if (mesh->instanceCount == 0) continue;
+
+        for (uint32_t j = 0; j < mesh->instanceCount; j++) {
+            EntityHandle entityHandle = mesh->registeredEntities[j];
+            Material* material = nullptr;
+
+            if (entityHandle.type == EntityType_Wall) {
+                WallEntity* wall = (WallEntity*)GetEntity(&zaynMem->entityFactory, entityHandle);
+                if (wall) material = wall->material;
+            } else if (entityHandle.type == EntityType_LightSource) {
+                LightSourceEntity* light = (LightSourceEntity*)GetEntity(&zaynMem->entityFactory, entityHandle);
+                if (light) material = light->material;
+            }
+
+            if (material) {
+                auto key = std::make_pair(mesh, material);
+                renderBatches[key].mesh = mesh;
+                renderBatches[key].material = material;
+                renderBatches[key].instanceData.push_back(mesh->instanceData[j]);
+                renderBatches[key].entities.push_back(entityHandle);
+            }
+        }
+    }
+
+    // Second pass: render each batch separately
+    for (auto& [key, batch] : renderBatches) {
+        if (batch.instanceData.empty()) continue;
+
+        Mesh* mesh = batch.mesh;
+        Material* material = batch.material;
+        uint32_t frameIndex = zaynMem->renderer.data.vkCurrentFrame % MAX_FRAMES_IN_FLIGHT;
+
+        // CRITICAL FIX: Update the instance buffer with ONLY this batch's data
+        // This ensures each draw call uses the correct instance data
+        for (size_t i = 0; i < batch.instanceData.size(); i++) {
+            ((InstancedData*)mesh->instanceBufferMapped)[i] = batch.instanceData[i];
+        }
+
+        VkDescriptorSet& set = material->descriptorSets[frameIndex];
+
+        // Choose pipeline and update uniforms based on material type
+        if (material->type == MATERIAL_LIGHTING) {
+            // Update lighting uniform buffer
+            LightingUniformBuffer lightingUbo = {};
+            lightingUbo.objectColor = glm::vec3(material->objectColor.x, material->objectColor.y, material->objectColor.z);
+            lightingUbo.lightColor = glm::vec3(1.0f, 1.0f, 1.0f); // Default white
+
+            // Use actual light color if available
+            if (zaynMem->gameData.lightSources.count > 0) {
+                EntityHandle lightHandle = zaynMem->gameData.lightSources[0];
+                LightSourceEntity* light = (LightSourceEntity*)GetEntity(&zaynMem->entityFactory, lightHandle);
+                if (light) {
+                    lightingUbo.lightColor = glm::vec3(light->color.x, light->color.y, light->color.z);
+                }
+            }
+
+            memcpy(material->lightingUniformBuffersMapped[frameIndex], &lightingUbo, sizeof(lightingUbo));
+
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, zaynMem->renderer.data.vkLightingGraphicsPipeline);
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, zaynMem->renderer.data.vkLightingPipelineLayout, 0, 1, &set, 0, nullptr);
+        } else {
+            vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, zaynMem->renderer.data.vkGraphicsPipeline);
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, zaynMem->renderer.data.vkPipelineLayout, 0, 1, &set, 0, nullptr);
+        }
+
+        // Bind buffers and draw this specific batch
+        VkBuffer vertexBuffers[] = { mesh->vertexBuffer, mesh->instanceBuffer };
+        VkDeviceSize offsets[] = { 0, 0 };
+        vkCmdBindVertexBuffers(commandBuffer, 0, 2, vertexBuffers, offsets);
+        vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+        // Draw only the instances in this batch
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mesh->indices.size()),
+                        static_cast<uint32_t>(batch.instanceData.size()), 0, 0, 0);
+        
+        // Debug output to help track what's being rendered
+        printf("Rendered batch: mesh=%s, material=%s, instances=%zu, color=(%.1f,%.1f,%.1f)\n",
+               mesh->name.c_str(), material->name.c_str(), batch.instanceData.size(),
+               material->objectColor.x, material->objectColor.y, material->objectColor.z);
+    }
 }
 
 void RenderInstancedMeshes(Zayn* zaynMem, VkCommandBuffer commandBuffer) {
-    for (int i = 0; i < zaynMem->meshFactory.meshes.count; i++) {
-        Mesh* mesh = &zaynMem->meshFactory.meshes[i];
-
-        if (mesh->instanceCount == 0) continue;
-
-        EntityHandle firstEntity = mesh->registeredEntities[0];
-        uint32_t frameIndex = zaynMem->renderer.data.vkCurrentFrame % MAX_FRAMES_IN_FLIGHT;
-
-        Material* material = nullptr;
-        if (firstEntity.type == EntityType_Wall) {
-            WallEntity* wallEntity = (WallEntity*)GetEntity(&zaynMem->entityFactory, firstEntity);
-            material = wallEntity->material;
-        }
-
-        if (!material) continue;
-        VkDescriptorSet& set = material->descriptorSets[frameIndex];
-
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, zaynMem->renderer.data.vkGraphicsPipeline);
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, zaynMem->renderer.data.vkPipelineLayout, 0, 1, &set, 0, nullptr);
-
-        RenderMeshInstanced(commandBuffer, mesh, set, zaynMem->renderer.data.vkPipelineLayout);
-    }
+    // Use the alternative rendering method that groups by mesh+material
+    RenderInstancedMeshesAlternative(zaynMem, commandBuffer);
 }
 
 void RenderEntities(Zayn* zaynMem, VkCommandBuffer commandBuffer) {
     EntityFactory* entityFactory = &zaynMem->entityFactory;
-    ComponentsFactory * componentfactory = &zaynMem->componentsFactory;
+    
+    // Clear all batches first
+    for (auto& [key, batch] : zaynMem->materialFactory.materialMeshBatches) {
+        batch->instanceCount = 0;
+        batch->instanceData.count = 0;
+        batch->registeredEntities.count = 0;
+    }
+    
+    // Populate batches with active entities
+    for (uint32_t i = 0; i < zaynMem->gameData.walls.count; i++) {
+        EntityHandle handle = zaynMem->gameData.walls[i];
+        WallEntity* wall = (WallEntity*)GetEntity(&zaynMem->entityFactory, handle);
+        if (wall && wall->isActive && wall->mesh && wall->material) {
+            mat4 transform = TRS(wall->position, wall->rotation, wall->scale);
+            AddMeshInstance(zaynMem, wall->mesh, wall->material, handle, transform);
+        }
+    }
+    
+    // Add light sources if they have visual representation
+    for (uint32_t i = 0; i < zaynMem->gameData.lightSources.count; i++) {
+        EntityHandle handle = zaynMem->gameData.lightSources[i];
+        LightSourceEntity* light = (LightSourceEntity*)GetEntity(&zaynMem->entityFactory, handle);
+        if (light && light->isActive && light->mesh && light->material) {
+            mat4 transform = TRS(light->position, V3(0,0,0), V3(0.2f, 0.2f, 0.2f));
+            AddMeshInstance(zaynMem, light->mesh, light->material, handle, transform);
+        }
+    }
+    
+    // Render all batches
+    RenderMaterialBatches(zaynMem, commandBuffer);
+}
 
-    RenderInstancedMeshes(zaynMem, commandBuffer);
+void UpdateEntityTransform(Zayn* zaynMem, EntityHandle handle, EntityType type, mat4 newTransform) {
+    // Find which batch this entity is in
+    for (auto& [key, batch] : zaynMem->materialFactory.materialMeshBatches) {
+        for (uint32_t i = 0; i < batch->instanceCount; i++) {
+            if (batch->registeredEntities[i].indexInInfo == handle.indexInInfo &&
+                batch->registeredEntities[i].generation == handle.generation) {
+                
+                batch->instanceData[i].modelMatrix = newTransform;
+                batch->instanceDataRequiresGpuUpdate = true;
+                return;
+            }
+        }
+    }
+}
 
-    for (int i = 0; i < entityFactory->activeEntityHandles.count; i++) {
-        EntityHandle* entityHandle = &entityFactory->activeEntityHandles[i];
+void RemoveEntityFromBatches(Zayn* zaynMem, EntityHandle handle) {
+    for (auto& [key, batch] : zaynMem->materialFactory.materialMeshBatches) {
+        for (uint32_t i = 0; i < batch->instanceCount; i++) {
+            if (batch->registeredEntities[i].indexInInfo == handle.indexInInfo &&
+                batch->registeredEntities[i].generation == handle.generation) {
+                
+                // Remove by swapping with last
+                if (i < batch->instanceCount - 1) {
+                    batch->instanceData[i] = batch->instanceData[batch->instanceCount - 1];
+                    batch->registeredEntities[i] = batch->registeredEntities[batch->instanceCount - 1];
+                }
+                batch->instanceCount--;
+                batch->instanceDataRequiresGpuUpdate = true;
+                return;
+            }
+        }
     }
 }
 
@@ -312,6 +580,7 @@ void UpdateRenderer(Zayn* zaynMem, Renderer* renderer, WindowManager* windowMana
     {
 
         UpdateUniformBuffer(renderer->data.vkCurrentFrame, renderer, camera);
+        // Note: UpdateLightingUniformBuffer is now called per-material in RenderInstancedMeshes
         BeginSwapChainRenderPass(renderer, renderer->data.vkCommandBuffers[renderer->data.vkCurrentFrame]);
 
         if (false) {
@@ -383,9 +652,11 @@ void UpdateMyImgui(Zayn* zaynMem, LevelEditor* editor, Camera* camera, Renderer*
         if (editor->selectedEntity.isValid) {
             EntityHandle handle = editor->selectedEntity.handle;
 
-            ImGui::Text("Selected Entity: %s (ID: %d)",
-                       editor->selectedEntity.type == EntityType_Wall ? "Wall" : "Unknown",
-                       handle.indexInInfo);
+            const char* entityTypeName = "Unknown";
+            if (editor->selectedEntity.type == EntityType_Wall) entityTypeName = "Wall";
+            else if (editor->selectedEntity.type == EntityType_LightSource) entityTypeName = "Light Source";
+            
+            ImGui::Text("Selected Entity: %s (ID: %d)", entityTypeName, handle.indexInInfo);
 
             if (editor->selectedEntity.type == EntityType_Wall) {
                 WallEntity* wall = (WallEntity*)GetEntity(&zaynMem->entityFactory, handle);
@@ -407,6 +678,53 @@ void UpdateMyImgui(Zayn* zaynMem, LevelEditor* editor, Camera* camera, Renderer*
                                 mat4 newTransform = TRS(wall->position, wall->rotation, wall->scale);
                                 wall->mesh->instanceData[i].modelMatrix = newTransform;
                                 wall->mesh->instanceDataRequiresGpuUpdate = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            else if (editor->selectedEntity.type == EntityType_LightSource) {
+                LightSourceEntity* light = (LightSourceEntity*)GetEntity(&zaynMem->entityFactory, handle);
+                if (light) {
+                    ImGui::Separator();
+                    ImGui::Text("Transform");
+
+                    bool changed = false;
+                    changed |= ImGui::DragFloat3("Position", &light->position.x, 0.1f);
+
+                    ImGui::Separator();
+                    ImGui::Text("Light Settings");
+                    
+                    float lightColor[3] = {light->color.x, light->color.y, light->color.z};
+                    if (ImGui::ColorEdit3("Light Color", lightColor)) {
+                        light->color = V3(lightColor[0], lightColor[1], lightColor[2]);
+                        changed = true;
+                    }
+                    
+                    // Preset buttons for existing lights
+                    ImGui::Text("Presets:");
+                    if (ImGui::Button("White")) { light->color = V3(1.0f, 1.0f, 1.0f); changed = true; }
+                    ImGui::SameLine();
+                    if (ImGui::Button("Red")) { light->color = V3(1.0f, 0.0f, 0.0f); changed = true; }
+                    ImGui::SameLine();
+                    if (ImGui::Button("Green")) { light->color = V3(0.0f, 1.0f, 0.0f); changed = true; }
+                    if (ImGui::Button("Blue")) { light->color = V3(0.0f, 0.0f, 1.0f); changed = true; }
+                    ImGui::SameLine();
+                    if (ImGui::Button("Yellow")) { light->color = V3(1.0f, 1.0f, 0.0f); changed = true; }
+                    ImGui::SameLine();
+                    if (ImGui::Button("Purple")) { light->color = V3(1.0f, 0.0f, 1.0f); changed = true; }
+
+                    // Update mesh instance position if changed
+                    if (changed && light->mesh) {
+                        for (uint32 i = 0; i < light->mesh->instanceCount; i++) {
+                            EntityHandle instanceHandle = light->mesh->registeredEntities[i];
+                            if (instanceHandle.indexInInfo == handle.indexInInfo &&
+                                instanceHandle.generation == handle.generation) {
+
+                                mat4 newTransform = TRS(light->position, V3(0,0,0), V3(0.2f, 0.2f, 0.2f));
+                                light->mesh->instanceData[i].modelMatrix = newTransform;
+                                light->mesh->instanceDataRequiresGpuUpdate = true;
                                 break;
                             }
                         }
@@ -527,13 +845,93 @@ void UpdateMyImgui(Zayn* zaynMem, LevelEditor* editor, Camera* camera, Renderer*
         ImGui::Separator();
         ImGui::Text("Entity Creation");
 
-        if (ImGui::Button("Create Wall")) {
+        // Entity type selection
+        const char* entityTypeNames[] = {"Player", "Floor", "Piano", "Wall", "Light Source"};
+        ImGui::Text("Entity Type:");
+        ImGui::Combo("##EntityType", &editor->selectedEntityTypeForCreation, entityTypeNames, EntityType_Count);
+        
+        // Mesh selection
+        ImGui::Text("Mesh:");
+        if (zaynMem->meshFactory.meshes.count > 0) {
+            static std::vector<const char*> meshNames;
+            meshNames.clear();
+            for (uint32 i = 0; i < zaynMem->meshFactory.meshes.count; i++) {
+                meshNames.push_back(zaynMem->meshFactory.meshes[i].name.c_str());
+            }
+            
+            if (editor->selectedMeshForCreation >= meshNames.size()) {
+                editor->selectedMeshForCreation = 0;
+            }
+            
+            ImGui::Combo("##Mesh", &editor->selectedMeshForCreation, meshNames.data(), meshNames.size());
+        } else {
+            ImGui::Text("No meshes available");
+        }
+        
+        // Material selection - keep it simple to avoid index mismatch
+        ImGui::Text("Material:");
+        if (zaynMem->materialFactory.materials.count > 0) {
+            static std::vector<const char*> materialNames;
+            materialNames.clear();
+            for (uint32 i = 0; i < zaynMem->materialFactory.materials.count; i++) {
+                materialNames.push_back(zaynMem->materialFactory.materials[i].name.c_str());
+            }
+            
+            if (editor->selectedMaterialForCreation >= materialNames.size()) {
+                editor->selectedMaterialForCreation = 0;
+            }
+            
+            ImGui::Combo("##Material", &editor->selectedMaterialForCreation, materialNames.data(), materialNames.size());
+            
+            // Show helpful text about material type
+            if (editor->selectedMaterialForCreation < zaynMem->materialFactory.materials.count) {
+                Material* selectedMat = &zaynMem->materialFactory.materials[editor->selectedMaterialForCreation];
+                if (selectedMat->type == MATERIAL_LIGHTING) {
+                    ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "✓ Lighting compatible");
+                    ImGui::Text("Object Color: (%.1f, %.1f, %.1f)", 
+                               selectedMat->objectColor.x, selectedMat->objectColor.y, selectedMat->objectColor.z);
+                } else {
+                    ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "⚠ Non-lighting material");
+                }
+            }
+        } else {
+            ImGui::Text("No materials available");
+        }
+        
+        // Light color selection (only show for light source entities)
+        if (editor->selectedEntityTypeForCreation == EntityType_LightSource) {
+            ImGui::Separator();
+            ImGui::Text("Light Settings:");
+            float lightColor[3] = {editor->lightColorForCreation.x, editor->lightColorForCreation.y, editor->lightColorForCreation.z};
+            if (ImGui::ColorEdit3("Light Color", lightColor)) {
+                editor->lightColorForCreation = V3(lightColor[0], lightColor[1], lightColor[2]);
+            }
+            
+            // Preset light colors
+            ImGui::Text("Presets:");
+            if (ImGui::Button("White")) editor->lightColorForCreation = V3(1.0f, 1.0f, 1.0f);
+            ImGui::SameLine();
+            if (ImGui::Button("Red")) editor->lightColorForCreation = V3(1.0f, 0.0f, 0.0f);
+            ImGui::SameLine();
+            if (ImGui::Button("Green")) editor->lightColorForCreation = V3(0.0f, 1.0f, 0.0f);
+            if (ImGui::Button("Blue")) editor->lightColorForCreation = V3(0.0f, 0.0f, 1.0f);
+            ImGui::SameLine();
+            if (ImGui::Button("Yellow")) editor->lightColorForCreation = V3(1.0f, 1.0f, 0.0f);
+            ImGui::SameLine();
+            if (ImGui::Button("Purple")) editor->lightColorForCreation = V3(1.0f, 0.0f, 1.0f);
+        }
+        
+        // Create entity button
+        if (ImGui::Button("Create Entity")) {
             vec3 spawnPos = camera->position + camera->front * 5.0f;
+            editor->entitySpawnPosition = spawnPos;
+            editor->requestCreateEntity = true;
         }
 
         ImGui::Separator();
         ImGui::Text("Statistics");
         ImGui::Text("Walls: %d", zaynMem->gameData.walls.count);
+        ImGui::Text("Light Sources: %d", zaynMem->gameData.lightSources.count);
     }
     ImGui::End();
 

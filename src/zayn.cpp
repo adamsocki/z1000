@@ -67,6 +67,7 @@ void InitZayn(Zayn* zaynMem) {
     InitLevelEditor(&zaynMem->levelEditor);
 
     InitRender(zaynMem);
+    CreateBasicLightingMaterials(zaynMem);  // Create colored materials after Vulkan is initialized
     InitGame(zaynMem);
 
 };

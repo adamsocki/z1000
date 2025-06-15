@@ -1,5 +1,46 @@
 {
-  "entities": [],
-  "levelName": "Test Level",
+  "entities": [
+    {
+      "id": 0,
+      "materialName": "viking_material",
+      "position": [
+        1.500000238418579,
+        -5.0,
+        0.7999999523162842
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "type": "Wall"
+    },
+    {
+      "id": 1,
+      "materialName": "viking_material",
+      "position": [
+        0.0,
+        -5.0,
+        -2.3999998569488525
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "type": "Wall"
+    }
+  ],
+  "levelName": "Untitled",
   "version": "1.0"
 }

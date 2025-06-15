@@ -5,6 +5,12 @@
 #include <glm/glm.hpp>
 #include <optional>
 
+struct InstancedData {
+	mat4 modelMatrix;
+	glm::vec3 objectColor;  // Per-instance color for lighting materials
+	float materialIndex;    // Index to identify which material this instance uses
+};
+
 struct Vertex {
         glm::vec3 pos;
         glm::vec3 color;
@@ -61,9 +67,10 @@ struct Vertex {
             return attributeDescriptions;
         }
 
-        static std::array<VkVertexInputAttributeDescription, 8> getAttributeDescriptions_instanced() {
-            std::array<VkVertexInputAttributeDescription, 8> attributeDescriptions{};
+        static std::array<VkVertexInputAttributeDescription, 10> getAttributeDescriptions_instanced() {
+            std::array<VkVertexInputAttributeDescription, 10> attributeDescriptions{};
 
+            // Vertex attributes (binding 0)
             attributeDescriptions[0].binding = 0;
             attributeDescriptions[0].location = 0;
             attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
@@ -84,25 +91,38 @@ struct Vertex {
             attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
             attributeDescriptions[3].offset = offsetof(Vertex, normal);
 
-            attributeDescriptions[4].binding = 1; // Assuming binding 1 for instance data
+            // Instance attributes (binding 1) - Model Matrix (4x4)
+            attributeDescriptions[4].binding = 1;
             attributeDescriptions[4].location = 4;
             attributeDescriptions[4].format = VK_FORMAT_R32G32B32A32_SFLOAT;
             attributeDescriptions[4].offset = offsetof(InstancedData, modelMatrix) + sizeof(glm::vec4) * 0;
 
-            attributeDescriptions[5].binding = 1; // Assuming binding 1 for instance data
+            attributeDescriptions[5].binding = 1;
             attributeDescriptions[5].location = 5;
             attributeDescriptions[5].format = VK_FORMAT_R32G32B32A32_SFLOAT;
             attributeDescriptions[5].offset = offsetof(InstancedData, modelMatrix) + sizeof(glm::vec4) * 1;
 
-            attributeDescriptions[6].binding = 1; // Assuming binding 1 for instance data
+            attributeDescriptions[6].binding = 1;
             attributeDescriptions[6].location = 6;
             attributeDescriptions[6].format = VK_FORMAT_R32G32B32A32_SFLOAT;
             attributeDescriptions[6].offset = offsetof(InstancedData, modelMatrix) + sizeof(glm::vec4) * 2;
 
-            attributeDescriptions[7].binding = 1; // Assuming binding 1 for instance data
+            attributeDescriptions[7].binding = 1;
             attributeDescriptions[7].location = 7;
             attributeDescriptions[7].format = VK_FORMAT_R32G32B32A32_SFLOAT;
             attributeDescriptions[7].offset = offsetof(InstancedData, modelMatrix) + sizeof(glm::vec4) * 3;
+
+            // Instance attributes - Object Color
+            attributeDescriptions[8].binding = 1;
+            attributeDescriptions[8].location = 8;
+            attributeDescriptions[8].format = VK_FORMAT_R32G32B32_SFLOAT;
+            attributeDescriptions[8].offset = offsetof(InstancedData, objectColor);
+
+            // Instance attributes - Material Index
+            attributeDescriptions[9].binding = 1;
+            attributeDescriptions[9].location = 9;
+            attributeDescriptions[9].format = VK_FORMAT_R32_SFLOAT;
+            attributeDescriptions[9].offset = offsetof(InstancedData, materialIndex);
 
             return attributeDescriptions;
         }
@@ -145,6 +165,7 @@ namespace std {
             return h1 ^ (h2 << 1) ^ (h3 << 2) ^ (h4 << 3);
         }
     };
+
 }
 
 
@@ -171,10 +192,23 @@ struct ModelPushConstant
 	mat4 model_1;
 };
 
+struct LightingPushConstant
+{
+	alignas(16) glm::vec3 lightColor;    // Color of the light source
+	alignas(16) glm::vec3 objectColor;   // Base color of the object
+};
+
 struct UniformBufferObject
     {
         alignas(16) glm::mat4 view;
         alignas(16) glm::mat4 proj;
+    };
+
+// Simple lighting uniform buffer following LearnOpenGL Colors tutorial
+struct LightingUniformBuffer
+    {
+        alignas(16) glm::vec3 lightColor;    // Color of the light source
+        alignas(16) glm::vec3 objectColor;   // Base color of the object (will be multiplied by light)
     };
 
 
@@ -255,6 +289,19 @@ struct Data
     VkDescriptorPool vkDescriptorPool;
     VkDescriptorPool vkDescriptorPool_blank;
     std::vector<VkDescriptorSet> vkDescriptorSets;
+    
+    // Lighting system additions
+    VkDescriptorSetLayout vkLightingDescriptorSetLayout;
+    VkDescriptorPool vkLightingDescriptorPool;
+    VkPipeline vkLightingGraphicsPipeline;
+    VkPipelineLayout vkLightingPipelineLayout;
+    VkShaderModule vkLightingVertShaderModule;
+    VkShaderModule vkLightingFragShaderModule;
+    std::vector<VkBuffer> vkLightingUniformBuffers;
+    std::vector<VkDeviceMemory> vkLightingUniformBuffersMemory;
+    std::vector<void *> vkLightingUniformBuffersMapped;
+    std::vector<VkDescriptorSet> vkLightingDescriptorSets;
+    
     uint32_t vkCurrentFrame = 0;
     uint32 vkCurrentImageIndex;
     bool vkIsFrameStarted = false;

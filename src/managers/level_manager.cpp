@@ -188,7 +188,9 @@ bool LoadLevel(Zayn* zaynMem, const char* fileName) {
                     // Register with renderer - this is the missing piece!
                     if (wall->mesh && wall->material) {
                         mat4 transform = TRS(wall->position, wall->rotation, wall->scale);
-                        AddMeshInstance(wall->mesh, handle, transform);
+                        vec3 objectColor = wall->material->objectColor;
+                        float materialIndex = 0.0f; // Could be improved to use actual material index
+                        AddMeshInstance(wall->mesh, handle, transform, objectColor, materialIndex);
                         printf("Added mesh instance at position (%.1f, %.1f, %.1f)\n", 
                                wall->position.x, wall->position.y, wall->position.z);
                     } else {

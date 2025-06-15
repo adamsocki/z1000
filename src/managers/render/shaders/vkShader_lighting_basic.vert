@@ -1,5 +1,8 @@
 #version 450
 
+// Basic lighting vertex shader following LearnOpenGL Colors tutorial
+// This is step 1: simple object color * light color
+
 layout(binding = 0) uniform UniformBufferObject {
     mat4 view;
     mat4 proj;

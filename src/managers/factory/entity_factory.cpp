@@ -5,6 +5,7 @@ void InitEntityTypeInfo( Zayn* zaynMem) {
 		[EntityType_Floor]  = {EntityType_Floor, sizeof(int32), 10000, "Floor"},
 		[EntityType_Piano]  = {EntityType_Piano, sizeof(int32), 10, "Grand Piano"},
 		[EntityType_Wall]  = {EntityType_Wall, sizeof(WallEntity), 100, "Wall"},
+		[EntityType_LightSource]  = {EntityType_LightSource, sizeof(LightSourceEntity), 50, "Light Source"},
 		// Add maor here...
 	};
 

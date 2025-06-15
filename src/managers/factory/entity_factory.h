@@ -6,6 +6,7 @@ enum EntityType
     EntityType_Floor,
     EntityType_Piano,
     EntityType_Wall,
+    EntityType_LightSource,
     EntityType_Count
 };
 

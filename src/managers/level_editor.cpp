@@ -18,6 +18,16 @@ void InitLevelEditor(LevelEditor* editor) {
     editor->requestCreateLevel = false;
     strcpy(editor->newLevelName, "new_level");
     strcpy(editor->selectedLevelFile, "");
+    
+    // Initialize entity creation UI state
+    editor->selectedEntityTypeForCreation = EntityType_Wall;
+    editor->selectedMeshForCreation = 0;
+    editor->selectedMaterialForCreation = 0;
+    editor->requestCreateEntity = false;
+    editor->entitySpawnPosition = V3(0, 0, 0);
+    
+    // Initialize light creation settings
+    editor->lightColorForCreation = V3(1, 1, 1);  // Default white light
 }
 
 void SelectEntity(LevelEditor* editor, EntityHandle handle, EntityType type) {
@@ -171,6 +181,138 @@ void DeleteSelectedEntity(Zayn* zaynMem, LevelEditor* editor) {
     DeselectEntity(editor);
 }
 
+EntityHandle CreateWallEntity(Zayn* zaynMem, vec3 position, vec3 rotation, vec3 scale) {
+    EntityHandle handle = AddEntity(&zaynMem->entityFactory, EntityType_Wall);
+    WallEntity* wall = (WallEntity*)GetEntity(&zaynMem->entityFactory, handle);
+    
+    if (wall) {
+        wall->position = position;
+        wall->rotation = rotation;
+        wall->scale = scale;
+        wall->isActive = true;
+        
+        // Assign default mesh and material if available
+        if (zaynMem->meshFactory.meshes.count > 0) {
+            wall->mesh = &zaynMem->meshFactory.meshes[0];
+        }
+        if (zaynMem->materialFactory.materials.count > 0) {
+            wall->material = &zaynMem->materialFactory.materials[0];
+        }
+        
+        // Add to renderer
+        if (wall->mesh && wall->material) {
+            mat4 transform = TRS(position, rotation, scale);
+            vec3 objectColor = wall->material->objectColor;
+            float materialIndex = 0.0f; // Could be improved to use actual material index
+            AddMeshInstance(wall->mesh, handle, transform, objectColor, materialIndex);
+        }
+        
+        // Add to game data
+        PushBack(&zaynMem->gameData.walls, handle);
+    }
+    
+    return handle;
+}
+
+EntityHandle CreateEntityAtPosition(Zayn* zaynMem, EntityType entityType, vec3 position, int meshIndex, int materialIndex) {
+    switch (entityType) {
+        case EntityType_Wall: {
+            EntityHandle handle = AddEntity(&zaynMem->entityFactory, EntityType_Wall);
+            WallEntity* wall = (WallEntity*)GetEntity(&zaynMem->entityFactory, handle);
+            
+            if (wall) {
+                wall->position = position;
+                wall->rotation = V3(0, 0, 0);
+                wall->scale = V3(1, 1, 1);
+                wall->isActive = true;
+                
+                // Assign mesh
+                if (meshIndex >= 0 && meshIndex < zaynMem->meshFactory.meshes.count) {
+                    wall->mesh = &zaynMem->meshFactory.meshes[meshIndex];
+                } else if (zaynMem->meshFactory.meshes.count > 0) {
+                    wall->mesh = &zaynMem->meshFactory.meshes[0];
+                }
+                
+                // Assign material
+                if (materialIndex >= 0 && materialIndex < zaynMem->materialFactory.materials.count) {
+                    wall->material = &zaynMem->materialFactory.materials[materialIndex];
+                } else if (zaynMem->materialFactory.materials.count > 0) {
+                    wall->material = &zaynMem->materialFactory.materials[0];
+                }
+                
+                // Add to renderer
+                if (wall->mesh && wall->material) {
+                    mat4 transform = TRS(position, wall->rotation, wall->scale);
+                    vec3 objectColor = wall->material->objectColor;
+                    float materialIndex = 0.0f; // Could be improved to use actual material index
+                    AddMeshInstance(wall->mesh, handle, transform, objectColor, materialIndex);
+                }
+                
+                // Add to game data
+                PushBack(&zaynMem->gameData.walls, handle);
+            }
+            
+            return handle;
+        }
+        
+        case EntityType_LightSource: {
+            EntityHandle handle = AddEntity(&zaynMem->entityFactory, EntityType_LightSource);
+            LightSourceEntity* light = (LightSourceEntity*)GetEntity(&zaynMem->entityFactory, handle);
+            
+            if (light) {
+                light->position = position;
+                light->color = zaynMem->levelEditor.lightColorForCreation;  // Use color from UI
+                light->isActive = true;
+                
+                // Optionally assign a small mesh for visual representation in editor
+                if (meshIndex >= 0 && meshIndex < zaynMem->meshFactory.meshes.count) {
+                    light->mesh = &zaynMem->meshFactory.meshes[meshIndex];
+                }
+                
+                // Assign material - light sources should NOT use lighting materials
+                // Find first non-lighting material for light source visual representation
+                light->material = nullptr;
+                for (uint32 i = 0; i < zaynMem->materialFactory.materials.count; i++) {
+                    Material* mat = &zaynMem->materialFactory.materials[i];
+                    if (mat->type != MATERIAL_LIGHTING) {
+                        light->material = mat;
+                        break;
+                    }
+                }
+                
+                // If user specifically selected a material and it's not lighting, use it
+                if (materialIndex >= 0 && materialIndex < zaynMem->materialFactory.materials.count) {
+                    Material* selectedMat = &zaynMem->materialFactory.materials[materialIndex];
+                    if (selectedMat->type != MATERIAL_LIGHTING) {
+                        light->material = selectedMat;
+                    }
+                }
+                
+                // Add to renderer for visual debugging if we have both mesh and material
+                if (light->mesh && light->material) {
+                    mat4 transform = TRS(position, V3(0,0,0), V3(0.2f, 0.2f, 0.2f)); // Small scale
+                    vec3 objectColor = light->material->objectColor;
+                    float materialIndex = 0.0f; // Could be improved to use actual material index
+                    AddMeshInstance(light->mesh, handle, transform, objectColor, materialIndex);
+                }
+                
+                // Add to game data
+                PushBack(&zaynMem->gameData.lightSources, handle);
+                
+                printf("Created light source with color (%.1f, %.1f, %.1f)\n", 
+                       light->color.x, light->color.y, light->color.z);
+            }
+            
+            return handle;
+        }
+        
+        // Add other entity types here as needed
+        default:
+            printf("Entity type %d not yet supported for creation\n", entityType);
+            return {};
+    }
+}
+
 void UpdateLevelEditor(Zayn* zaynMem, LevelEditor* editor) {
     // Toggle editor mode first - before the early return
     if (InputPressed(zaynMem->inputManager.keyboard, Input_Tab)) {
@@ -222,5 +364,19 @@ void UpdateLevelEditor(Zayn* zaynMem, LevelEditor* editor) {
         strcpy(zaynMem->levelManager.currentLevel.levelName, editor->newLevelName);
         SaveLevel(zaynMem, fileName.c_str());
         editor->requestCreateLevel = false;
+    }
+    
+    // Handle entity creation request
+    if (editor->requestCreateEntity) {
+        EntityHandle newEntity = CreateEntityAtPosition(zaynMem, (EntityType)editor->selectedEntityTypeForCreation, 
+                                                      editor->entitySpawnPosition, editor->selectedMeshForCreation, editor->selectedMaterialForCreation);
+        
+        if (newEntity.indexInInfo >= 0) {
+            SelectEntity(editor, newEntity, (EntityType)editor->selectedEntityTypeForCreation);
+            printf("Created entity of type %d at position (%.1f, %.1f, %.1f)\n", 
+                   editor->selectedEntityTypeForCreation, editor->entitySpawnPosition.x, editor->entitySpawnPosition.y, editor->entitySpawnPosition.z);
+        }
+        
+        editor->requestCreateEntity = false;
     }
 }

@@ -1481,6 +1481,8 @@ CMakeFiles/z1000.dir/src/main.cpp.o: /Users/adamsocki/dev/clion/z1000/src/main.c
   _deps/tinyobjloader-src/tiny_obj_loader.h \
   /Users/adamsocki/dev/clion/z1000/src/DataTypes.h \
   /Users/adamsocki/dev/clion/z1000/src/dynamicArray.h \
+  /Users/adamsocki/dev/clion/z1000/src/game/entities/LightSourceEntity.cpp \
+  /Users/adamsocki/dev/clion/z1000/src/game/entities/LightSourceEntity.h \
   /Users/adamsocki/dev/clion/z1000/src/game/entities/WallEntity.cpp \
   /Users/adamsocki/dev/clion/z1000/src/game/entities/WallEntity.h \
   /Users/adamsocki/dev/clion/z1000/src/game/game.cpp \
@@ -1852,6 +1854,8 @@ CMakeFiles/z1000.dir/src/main.cpp.o: /Users/adamsocki/dev/clion/z1000/src/main.c
 
 /usr/local/include/glm/detail/func_matrix.inl:
 
+/usr/local/include/glm/ext/matrix_float4x3.hpp:
+
 /usr/local/include/glm/ext/matrix_float3x4_precision.hpp:
 
 /usr/local/include/glm/ext/matrix_float3x3_precision.hpp:
@@ -1964,10 +1968,6 @@ _deps/imgui-src/backends/imgui_impl_vulkan.h:
 
 /Users/adamsocki/dev/clion/z1000/src/managers/window.h:
 
-/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/ranges_copy.h:
-
-/usr/local/include/glm/ext/matrix_float4x2_precision.hpp:
-
 /Users/adamsocki/dev/clion/z1000/src/managers/window.cpp:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/ranges_binary_search.h:
@@ -2009,6 +2009,14 @@ _deps/imgui-src/backends/imgui_impl_vulkan.h:
 /Users/adamsocki/dev/clion/z1000/src/managers/factory/components/mesh_components.h:
 
 /Users/adamsocki/dev/clion/z1000/src/managers/factory/components/material_components.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__compare/three_way_comparable.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__fwd/bit_reference.h:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/filesystem:
+
+/Users/adamsocki/dev/clion/z1000/src/game/entities/LightSourceEntity.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/is_reference.h:
 
@@ -2588,12 +2596,6 @@ _deps/nlohmann_json-src/include/nlohmann/detail/input/input_adapters.hpp:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/format:
 
-/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__compare/three_way_comparable.h:
-
-/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__fwd/bit_reference.h:
-
-/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/filesystem:
-
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/fenv.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/execution:
@@ -2807,6 +2809,8 @@ _deps/nlohmann_json-src/include/nlohmann/detail/meta/call_std/end.hpp:
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/max.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/is_constant_evaluated.h:
+
+/Users/adamsocki/dev/clion/z1000/src/game/entities/LightSourceEntity.cpp:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/is_const.h:
 
@@ -3580,8 +3584,6 @@ _deps/nlohmann_json-src/include/nlohmann/detail/conversions/from_json.hpp:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__chrono/statically_widen.h:
 
-/usr/local/include/glm/ext/matrix_float4x3.hpp:
-
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__charconv/traits.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/mach/host_priv.h:
@@ -3995,6 +3997,10 @@ _deps/nlohmann_json-src/include/nlohmann/thirdparty/hedley/hedley.hpp:
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/_assert.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__math/modulo.h:
+
+/usr/local/include/glm/ext/matrix_float4x2_precision.hpp:
+
+/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__algorithm/ranges_copy.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/System/Library/Frameworks/CoreServices.framework/Frameworks/SearchKit.framework/Headers/SKSearch.h:
 
