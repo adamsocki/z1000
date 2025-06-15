@@ -202,7 +202,9 @@ EntityHandle CreateWallEntity(Zayn* zaynMem, vec3 position, vec3 rotation, vec3 
         // Add to renderer
         if (wall->mesh && wall->material) {
             mat4 transform = TRS(position, rotation, scale);
-            AddMeshInstance(wall->mesh, handle, transform);
+            vec3 objectColor = wall->material->objectColor;
+            float materialIndex = 0.0f; // Could be improved to use actual material index
+            AddMeshInstance(wall->mesh, handle, transform, objectColor, materialIndex);
         }
         
         // Add to game data
@@ -241,7 +243,9 @@ EntityHandle CreateEntityAtPosition(Zayn* zaynMem, EntityType entityType, vec3 p
                 // Add to renderer
                 if (wall->mesh && wall->material) {
                     mat4 transform = TRS(position, wall->rotation, wall->scale);
-                    AddMeshInstance(wall->mesh, handle, transform);
+                    vec3 objectColor = wall->material->objectColor;
+                    float materialIndex = 0.0f; // Could be improved to use actual material index
+                    AddMeshInstance(wall->mesh, handle, transform, objectColor, materialIndex);
                 }
                 
                 // Add to game data
@@ -287,7 +291,9 @@ EntityHandle CreateEntityAtPosition(Zayn* zaynMem, EntityType entityType, vec3 p
                 // Add to renderer for visual debugging if we have both mesh and material
                 if (light->mesh && light->material) {
                     mat4 transform = TRS(position, V3(0,0,0), V3(0.2f, 0.2f, 0.2f)); // Small scale
-                    AddMeshInstance(light->mesh, handle, transform);
+                    vec3 objectColor = light->material->objectColor;
+                    float materialIndex = 0.0f; // Could be improved to use actual material index
+                    AddMeshInstance(light->mesh, handle, transform, objectColor, materialIndex);
                 }
                 
                 // Add to game data
