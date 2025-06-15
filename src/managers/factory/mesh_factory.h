@@ -2,12 +2,17 @@
 // Created by Adam Socki on 6/4/25.
 //
 
+#ifndef MESH_FACTORY_H
+#define MESH_FACTORY_H
+
 #include <vector>
 #include <unordered_map>
 #include <string>
 #include <vulkan/vulkan.h>
-#include "../render/render_vulkan.h"
 #include "../../utils/dynamic_array.h"
+
+// Forward declaration to avoid circular dependency
+struct InstancedData;
 
 struct Mesh {
     std::vector<InstancedData> instances;
@@ -28,4 +33,6 @@ struct MeshFactory {
 
     std::vector<std::string> availableMeshNames;
 };
+
+#endif // MESH_FACTORY_H
 

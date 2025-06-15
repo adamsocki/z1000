@@ -1,3 +1,5 @@
+#ifndef RENDER_VULKAN_H
+#define RENDER_VULKAN_H
 
 #include <vector>
 #include <array>
@@ -6,6 +8,7 @@
 #include <optional>
 #include <unordered_map>
 #include <string>
+#include <cstddef>
 
 using mat4 = glm::mat4;
 using uint32 = uint32_t;
@@ -331,3 +334,5 @@ struct ImGuiData {
     std::vector<VkFramebuffer> imGuiFrameBuffers;
     bool visible;
 };
+
+#endif // RENDER_VULKAN_H
