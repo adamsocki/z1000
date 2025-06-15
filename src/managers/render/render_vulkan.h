@@ -1,12 +1,20 @@
+#ifndef RENDER_VULKAN_H
+#define RENDER_VULKAN_H
 
 #include <vector>
 #include <array>
 #include <vulkan/vulkan.h>
 #include <glm/glm.hpp>
 #include <optional>
+#include <unordered_map>
+#include <string>
+#include <cstddef>
+
+using mat4 = glm::mat4;
+using uint32 = uint32_t;
 
 struct InstancedData {
-	mat4 modelMatrix;
+	glm::mat4 modelMatrix;
 	glm::vec3 objectColor;  // Per-instance color for lighting materials
 	float materialIndex;    // Index to identify which material this instance uses
 };
@@ -212,6 +220,13 @@ struct LightingUniformBuffer
     };
 
 
+struct Material {
+    alignas(16) glm::vec3 ambient;
+    alignas(16) glm::vec3 diffuse;
+    alignas(16) glm::vec3 specular;
+    alignas(4) float shininess;
+};
+
 struct Data
 {
     bool vkFramebufferResized;
@@ -302,6 +317,12 @@ struct Data
     std::vector<void *> vkLightingUniformBuffersMapped;
     std::vector<VkDescriptorSet> vkLightingDescriptorSets;
     
+    // Material system
+    std::vector<Material> materials;
+    VkBuffer materialBuffer;
+    VkDeviceMemory materialBufferMemory;
+    void* materialBufferMapped;
+    
     uint32_t vkCurrentFrame = 0;
     uint32 vkCurrentImageIndex;
     bool vkIsFrameStarted = false;
@@ -314,3 +335,5 @@ struct ImGuiData {
     std::vector<VkFramebuffer> imGuiFrameBuffers;
     bool visible;
 };
+
+#endif // RENDER_VULKAN_H
