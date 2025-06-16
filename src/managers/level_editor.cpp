@@ -35,6 +35,13 @@ void InitLevelEditor(LevelEditor* editor) {
     editor->specularStrength = 0.5f;
     editor->shininess = 32;
     editor->showLightingDebug = false;
+    
+    // Initialize material properties with emerald material (from LearnOpenGL)
+    editor->useMaterialProperties = false; // Start with legacy mode
+    editor->materialAmbient = V3(0.0215f, 0.1745f, 0.0215f);    // Emerald ambient
+    editor->materialDiffuse = V3(0.07568f, 0.61424f, 0.07568f); // Emerald diffuse
+    editor->materialSpecular = V3(0.633f, 0.727811f, 0.633f);   // Emerald specular
+    editor->materialShininess = 76.8f;                           // Emerald shininess
 }
 
 void SelectEntity(LevelEditor* editor, EntityHandle handle, EntityType type) {

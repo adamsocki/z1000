@@ -68,6 +68,7 @@ void InitZayn(Zayn* zaynMem) {
 
     InitRender(zaynMem);
     CreateBasicLightingMaterials(zaynMem);  // Create colored materials after Vulkan is initialized
+    CreateLightingMapsMaterials(zaynMem);   // Create lighting maps materials for texture-based lighting
     InitGame(zaynMem);
 
 };

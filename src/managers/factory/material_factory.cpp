@@ -170,11 +170,32 @@ Material* MakeMaterial(Zayn* zaynMem, MaterialCreateInfo* info)
             material.lightingUniformBuffersMapped[i] = nullptr;
         }
     }
+    
+    // Set up lighting maps materials
+    if (info->type == MATERIAL_LIGHTING_MAPS) {
+        material.objectColor = V3(info->color[0], info->color[1], info->color[2]);
+        
+        // Initialize lighting uniform buffers for lighting maps
+        material.lightingUniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+        material.lightingUniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
+        material.lightingUniformBuffersMapped.resize(MAX_FRAMES_IN_FLIGHT);
+        
+        // Initialize to null - will be created when first used
+        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+            material.lightingUniformBuffers[i] = VK_NULL_HANDLE;
+            material.lightingUniformBuffersMemory[i] = VK_NULL_HANDLE;
+            material.lightingUniformBuffersMapped[i] = nullptr;
+        }
+    }
 
     material.descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         if (material.type == MATERIAL_LIGHTING) {
             AllocateLightingMaterialDescriptorSet(zaynMem, &material, i);
+        } else if (material.type == MATERIAL_LIGHTING_MAPS) {
+            // AllocateLightingMapsMaterialDescriptorSet(zaynMem, &material, i);
+            // TODO: Implement lighting maps descriptor set allocation
+            printf("Warning: MATERIAL_LIGHTING_MAPS descriptor set allocation not yet implemented\n");
         } else {
             AllocateMaterialDescriptorSet(zaynMem, &material, i);
         }
@@ -246,6 +267,26 @@ void CreateBasicLightingMaterials(Zayn* zaynMem) {
     whiteInfo.name = "Lighting - White";
     whiteInfo.color[0] = 1.0f; whiteInfo.color[1] = 1.0f; whiteInfo.color[2] = 1.0f; whiteInfo.color[3] = 1.0f;
     MakeMaterial(zaynMem, &whiteInfo);
+}
+
+void CreateLightingMapsMaterials(Zayn* zaynMem) {
+    // Create basic lighting maps materials using available textures
+    // This function will create materials when textures are available
+    
+    printf("Creating lighting maps materials...\n");
+    
+    // Note: For now, create placeholder materials without textures
+    // Real implementation would require diffuse and specular textures to be loaded
+    
+    // Example lighting maps material
+    MaterialCreateInfo lightingMapsInfo = {};
+    lightingMapsInfo.type = MATERIAL_LIGHTING_MAPS;
+    lightingMapsInfo.texture = nullptr;  // Will be set via diffuseMap and specularMap
+    lightingMapsInfo.name = "Lighting Maps - Basic";
+    lightingMapsInfo.color[0] = 1.0f; lightingMapsInfo.color[1] = 1.0f; lightingMapsInfo.color[2] = 1.0f; lightingMapsInfo.color[3] = 1.0f;
+    MakeMaterial(zaynMem, &lightingMapsInfo);
+    
+    printf("Lighting maps materials created (descriptor sets pending implementation)\n");
 }
 
 void InitMaterialFactory(Zayn* zaynMem)

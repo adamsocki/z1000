@@ -1194,6 +1194,55 @@ void CreateDescriptorSetLayout(Renderer* renderer, VkDescriptorSetLayout* descri
     }
 }
 
+void CreateLightingMapsDescriptorSetLayout(Renderer* renderer, VkDescriptorSetLayout* descriptorSetLayout)
+{
+    std::vector<VkDescriptorSetLayoutBinding> bindings = {};
+    
+    // Binding 0: UBO (view/projection matrices)
+    VkDescriptorSetLayoutBinding uboLayoutBinding{};
+    uboLayoutBinding.binding = 0;
+    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    uboLayoutBinding.descriptorCount = 1;
+    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    bindings.push_back(uboLayoutBinding);
+    
+    // Binding 1: Diffuse texture map
+    VkDescriptorSetLayoutBinding diffuseLayoutBinding{};
+    diffuseLayoutBinding.binding = 1;
+    diffuseLayoutBinding.descriptorCount = 1;
+    diffuseLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    diffuseLayoutBinding.pImmutableSamplers = nullptr;
+    diffuseLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    bindings.push_back(diffuseLayoutBinding);
+    
+    // Binding 2: Specular texture map
+    VkDescriptorSetLayoutBinding specularLayoutBinding{};
+    specularLayoutBinding.binding = 2;
+    specularLayoutBinding.descriptorCount = 1;
+    specularLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    specularLayoutBinding.pImmutableSamplers = nullptr;
+    specularLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    bindings.push_back(specularLayoutBinding);
+    
+    // Binding 3: Lighting uniform buffer
+    VkDescriptorSetLayoutBinding lightingLayoutBinding{};
+    lightingLayoutBinding.binding = 3;
+    lightingLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    lightingLayoutBinding.descriptorCount = 1;
+    lightingLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    bindings.push_back(lightingLayoutBinding);
+
+    VkDescriptorSetLayoutCreateInfo layoutInfo{};
+    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+    layoutInfo.pBindings = bindings.data();
+
+    if (vkCreateDescriptorSetLayout(renderer->data.vkDevice, &layoutInfo, nullptr, descriptorSetLayout) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create lighting maps descriptor set layout!");
+    }
+}
+
 void CreateDescriptorPool(Renderer* renderer, VkDescriptorPool* descriptorPool, bool hasImage)
 {
     std::vector<VkDescriptorPoolSize> poolSizes = {};
@@ -1518,6 +1567,11 @@ void InitRender_Vulkan(Renderer* renderer, WindowManager* window)
     CreateDescriptorSetLayout(renderer, &renderer->data.vkLightingDescriptorSetLayout, true, true);
     CreateDescriptorPool(renderer, &renderer->data.vkLightingDescriptorPool, true);
     CreateGraphicsPipeline(renderer, &renderer->data.vkLightingGraphicsPipeline, GetShaderPath("vkShader_lighting_basic_vert.spv"), GetShaderPath("vkShader_lighting_basic_frag.spv"), renderer->data.vkPushConstantRanges, &renderer->data.vkLightingDescriptorSetLayout, &renderer->data.vkLightingPipelineLayout);
+
+    // Create lighting maps pipeline following LearnOpenGL Lighting Maps tutorial
+    CreateLightingMapsDescriptorSetLayout(renderer, &renderer->data.vkLightingMapsDescriptorSetLayout);
+    CreateDescriptorPool(renderer, &renderer->data.vkLightingMapsDescriptorPool, true);
+    CreateGraphicsPipeline(renderer, &renderer->data.vkLightingMapsGraphicsPipeline, GetShaderPath("vkShader_lighting_maps_vert.spv"), GetShaderPath("vkShader_lighting_maps_frag.spv"), renderer->data.vkPushConstantRanges, &renderer->data.vkLightingMapsDescriptorSetLayout, &renderer->data.vkLightingMapsPipelineLayout);
 
     CreateUniformBuffer(renderer, renderer->data.vkUniformBuffers, renderer->data.vkUniformBuffersMemory, renderer->data.vkUniformBuffersMapped);
     

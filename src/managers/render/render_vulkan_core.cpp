@@ -305,6 +305,8 @@ void RenderMaterialBatches(Zayn* zaynMem, VkCommandBuffer commandBuffer) {
         if (material->type == MATERIAL_LIGHTING) {
             // Update this material's specific uniform buffer
             LightingUniformBuffer lightingUbo = {};
+
+            
             vec3 lightPosition = V3(0, 5, 0);
             vec3 lightColor = V3(1.0f, 1.0f, 1.0f);
 
@@ -322,10 +324,25 @@ void RenderMaterialBatches(Zayn* zaynMem, VkCommandBuffer commandBuffer) {
             lightingUbo.objectColor = glm::vec3(material->objectColor.x, material->objectColor.y, material->objectColor.z);
             lightingUbo.lightPos = glm::vec3(lightPosition.x, lightPosition.y, lightPosition.z);
             lightingUbo.viewPos = glm::vec3(zaynMem->camera.position.x, zaynMem->camera.position.y, zaynMem->camera.position.z);
+            
+            // Legacy lighting properties
             lightingUbo.ambientStrength = zaynMem->levelEditor.ambientStrength;
             lightingUbo.specularStrength = zaynMem->levelEditor.specularStrength;
             lightingUbo.shininess = zaynMem->levelEditor.shininess;
             lightingUbo.lightingMode = zaynMem->levelEditor.currentLightingMode;
+            
+            // Material properties (LearnOpenGL Materials tutorial)
+            lightingUbo.useMaterialProperties = zaynMem->levelEditor.useMaterialProperties ? 1 : 0;
+            lightingUbo.materialAmbient = glm::vec3(zaynMem->levelEditor.materialAmbient.x, 
+                                                   zaynMem->levelEditor.materialAmbient.y, 
+                                                   zaynMem->levelEditor.materialAmbient.z);
+            lightingUbo.materialDiffuse = glm::vec3(zaynMem->levelEditor.materialDiffuse.x, 
+                                                   zaynMem->levelEditor.materialDiffuse.y, 
+                                                   zaynMem->levelEditor.materialDiffuse.z);
+            lightingUbo.materialSpecular = glm::vec3(zaynMem->levelEditor.materialSpecular.x, 
+                                                    zaynMem->levelEditor.materialSpecular.y, 
+                                                    zaynMem->levelEditor.materialSpecular.z);
+            lightingUbo.materialShininess = zaynMem->levelEditor.materialShininess;
             
             // Debug: Print lighting mode info occasionally
             static int debugCounter = 0;
@@ -1017,27 +1034,145 @@ void UpdateMyImgui(Zayn* zaynMem, LevelEditor* editor, Camera* camera, Renderer*
     }
 
     ImGui::Separator();
-    ImGui::Text("Lighting Parameters:");
-
-    // Show controls based on current mode
-    if (editor->currentLightingMode >= LIGHTING_MODE_AMBIENT_ONLY) {
-        ImGui::SliderFloat("Ambient Strength", &editor->ambientStrength, 0.0f, 1.0f);
+    
+    // Material mode toggle
+    if (ImGui::Checkbox("Use Material Properties", &editor->useMaterialProperties)) {
+        if (editor->useMaterialProperties) {
+            printf("Switched to Material Properties mode\n");
+        } else {
+            printf("Switched to Legacy Lighting mode\n");
+        }
     }
-    if (editor->currentLightingMode >= LIGHTING_MODE_SPECULAR) {
-        ImGui::SliderFloat("Specular Strength", &editor->specularStrength, 0.0f, 1.0f);
+    
+    if (editor->useMaterialProperties) {
+        ImGui::Text("Material Properties (LearnOpenGL Materials):");
+        
+        // Material property controls
+        float ambient[3] = {editor->materialAmbient.x, editor->materialAmbient.y, editor->materialAmbient.z};
+        if (ImGui::ColorEdit3("Material Ambient", ambient)) {
+            editor->materialAmbient = V3(ambient[0], ambient[1], ambient[2]);
+        }
+        
+        float diffuse[3] = {editor->materialDiffuse.x, editor->materialDiffuse.y, editor->materialDiffuse.z};
+        if (ImGui::ColorEdit3("Material Diffuse", diffuse)) {
+            editor->materialDiffuse = V3(diffuse[0], diffuse[1], diffuse[2]);
+        }
+        
+        float specular[3] = {editor->materialSpecular.x, editor->materialSpecular.y, editor->materialSpecular.z};
+        if (ImGui::ColorEdit3("Material Specular", specular)) {
+            editor->materialSpecular = V3(specular[0], specular[1], specular[2]);
+        }
+        
+        ImGui::SliderFloat("Material Shininess", &editor->materialShininess, 1.0f, 256.0f);
+        
+        // Material presets from LearnOpenGL
+        ImGui::Separator();
+        ImGui::Text("Material Presets:");
+        if (ImGui::Button("Emerald")) {
+            editor->materialAmbient = V3(0.0215f, 0.1745f, 0.0215f);
+            editor->materialDiffuse = V3(0.07568f, 0.61424f, 0.07568f);
+            editor->materialSpecular = V3(0.633f, 0.727811f, 0.633f);
+            editor->materialShininess = 76.8f;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Gold")) {
+            editor->materialAmbient = V3(0.24725f, 0.1995f, 0.0745f);
+            editor->materialDiffuse = V3(0.75164f, 0.60648f, 0.22648f);
+            editor->materialSpecular = V3(0.628281f, 0.555802f, 0.366065f);
+            editor->materialShininess = 51.2f;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Silver")) {
+            editor->materialAmbient = V3(0.19225f, 0.19225f, 0.19225f);
+            editor->materialDiffuse = V3(0.50754f, 0.50754f, 0.50754f);
+            editor->materialSpecular = V3(0.508273f, 0.508273f, 0.508273f);
+            editor->materialShininess = 51.2f;
+        }
+        
+        if (ImGui::Button("Ruby")) {
+            editor->materialAmbient = V3(0.1745f, 0.01175f, 0.01175f);
+            editor->materialDiffuse = V3(0.61424f, 0.04136f, 0.04136f);
+            editor->materialSpecular = V3(0.727811f, 0.626959f, 0.626959f);
+            editor->materialShininess = 76.8f;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Plastic (Cyan)")) {
+            editor->materialAmbient = V3(0.0f, 0.1f, 0.06f);
+            editor->materialDiffuse = V3(0.0f, 0.50980392f, 0.50980392f);
+            editor->materialSpecular = V3(0.50196078f, 0.50196078f, 0.50196078f);
+            editor->materialShininess = 32.0f;
+        }
+        
+    } else {
+        ImGui::Text("Legacy Lighting Parameters:");
+        
+        // Show controls based on current mode
+        if (editor->currentLightingMode >= LIGHTING_MODE_AMBIENT_ONLY) {
+            ImGui::SliderFloat("Ambient Strength", &editor->ambientStrength, 0.0f, 1.0f);
+        }
+        if (editor->currentLightingMode >= LIGHTING_MODE_SPECULAR) {
+            ImGui::SliderFloat("Specular Strength", &editor->specularStrength, 0.0f, 1.0f);
 
-        // Shininess with common values from LearnOpenGL
-        if (ImGui::Button("Shininess: 8")) editor->shininess = 8;
-        ImGui::SameLine();
-        if (ImGui::Button("16")) editor->shininess = 16;
-        ImGui::SameLine();
-        if (ImGui::Button("32")) editor->shininess = 32;
-        ImGui::SameLine();
-        if (ImGui::Button("64")) editor->shininess = 64;
-        ImGui::SameLine();
-        if (ImGui::Button("128")) editor->shininess = 128;
+            // Shininess with common values from LearnOpenGL
+            if (ImGui::Button("Shininess: 8")) editor->shininess = 8;
+            ImGui::SameLine();
+            if (ImGui::Button("16")) editor->shininess = 16;
+            ImGui::SameLine();
+            if (ImGui::Button("32")) editor->shininess = 32;
+            ImGui::SameLine();
+            if (ImGui::Button("64")) editor->shininess = 64;
+            ImGui::SameLine();
+            if (ImGui::Button("128")) editor->shininess = 128;
 
-        ImGui::SliderInt("Custom Shininess", &editor->shininess, 1, 256);
+            ImGui::SliderInt("Custom Shininess", &editor->shininess, 1, 256);
+        }
+    }
+    
+    ImGui::Separator();
+    ImGui::Text("Lighting Maps (Texture-based Materials):");
+    
+    // Add checkbox to enable lighting maps mode
+    static bool useLightingMaps = false;
+    if (ImGui::Checkbox("Use Lighting Maps", &useLightingMaps)) {
+        // Toggle lighting maps mode
+        printf("%s Lighting Maps mode\n", useLightingMaps ? "Enabled" : "Disabled");
+    }
+    
+    if (useLightingMaps) {
+        ImGui::Text("Diffuse and Specular texture maps for realistic materials");
+        
+        // Texture selection dropdowns
+        static int selectedDiffuseTexture = 0;
+        static int selectedSpecularTexture = 0;
+        
+        // Get available textures from texture factory
+        std::vector<const char*> textureNames;
+        textureNames.push_back("None");
+        
+        // Add available texture names
+        for (const auto& textureName : zaynMem->textureFactory.availableTextureNames) {
+            textureNames.push_back(textureName.c_str());
+        }
+        
+        ImGui::Text("Diffuse Map:");
+        ImGui::Combo("##DiffuseMap", &selectedDiffuseTexture, textureNames.data(), textureNames.size());
+        
+        ImGui::Text("Specular Map:");
+        ImGui::Combo("##SpecularMap", &selectedSpecularTexture, textureNames.data(), textureNames.size());
+        
+        // Shininess control for lighting maps
+        static float lightingMapsShininess = 64.0f;
+        ImGui::SliderFloat("Shininess", &lightingMapsShininess, 1.0f, 256.0f);
+        
+        // Quick preset buttons for lighting maps
+        ImGui::Separator();
+        ImGui::Text("Lighting Maps Presets:");
+        if (ImGui::Button("Create Test Material")) {
+            // Create a lighting maps material with selected textures
+            printf("Creating lighting maps material with diffuse: %s, specular: %s\n", 
+                   selectedDiffuseTexture > 0 ? textureNames[selectedDiffuseTexture] : "None",
+                   selectedSpecularTexture > 0 ? textureNames[selectedSpecularTexture] : "None");
+        }
     }
 
     ImGui::Separator();

@@ -6,7 +6,8 @@ enum MaterialType
 {
     MATERIAL_PBR,
     MATERIAL_UNLIT,
-    MATERIAL_LIGHTING  // For basic lighting system following LearnOpenGL Colors tutorial
+    MATERIAL_LIGHTING,  // For basic lighting system following LearnOpenGL Colors tutorial
+    MATERIAL_LIGHTING_MAPS  // For lighting maps system with diffuse and specular textures
 };
 
 
@@ -32,7 +33,11 @@ struct Material {
     // For lighting materials - object color following LearnOpenGL Colors tutorial
     vec3 objectColor = V3(1.0f, 1.0f, 1.0f);  // Default white
     
-    // Per-material lighting uniform buffers (only used for MATERIAL_LIGHTING)
+    // For lighting maps materials - additional textures
+    Texture* diffuseMap = nullptr;
+    Texture* specularMap = nullptr;
+    
+    // Per-material lighting uniform buffers (only used for MATERIAL_LIGHTING and MATERIAL_LIGHTING_MAPS)
     std::vector<VkBuffer> lightingUniformBuffers;
     std::vector<VkDeviceMemory> lightingUniformBuffersMemory;
     std::vector<void*> lightingUniformBuffersMapped;

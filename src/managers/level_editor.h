@@ -48,4 +48,11 @@ struct LevelEditor {
     float specularStrength;
     int shininess;
     bool showLightingDebug;
+    
+    // Material properties (LearnOpenGL Materials tutorial)
+    bool useMaterialProperties;
+    vec3 materialAmbient;
+    vec3 materialDiffuse;
+    vec3 materialSpecular;
+    float materialShininess;
 };

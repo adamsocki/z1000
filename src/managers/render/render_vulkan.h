@@ -197,14 +197,23 @@ enum LightingMode {
 };
 
 struct LightingUniformBuffer {
-    alignas(16) glm::vec3 lightColor;     // Color of the light source
-    alignas(16) glm::vec3 objectColor;    // Base color of the object
-    alignas(16) glm::vec3 lightPos;       // Position of the light in world space
-    alignas(16) glm::vec3 viewPos;        // Camera position for specular calculation
-    alignas(4)  float ambientStrength;    // Ambient lighting strength (usually 0.1)
-    alignas(4)  float specularStrength;   // Specular lighting strength (usually 0.5)
-    alignas(4)  int shininess;            // Specular shininess (32, 64, 128, etc.)
+    alignas(16) glm::vec3 lightColor;      // Color of the light source
+    alignas(16) glm::vec3 objectColor;     // Base color of the object (for backward compatibility)
+    alignas(16) glm::vec3 lightPos;        // Position of the light in world space
+    alignas(16) glm::vec3 viewPos;         // Camera position for specular calculation
+    
+    // Material properties (LearnOpenGL Materials tutorial)
+    alignas(16) glm::vec3 materialAmbient;   // Material ambient color
+    alignas(16) glm::vec3 materialDiffuse;   // Material diffuse color
+    alignas(16) glm::vec3 materialSpecular;  // Material specular color
+    alignas(4)  float materialShininess;     // Material shininess
+    
+    // Legacy properties (kept for backward compatibility)
+    alignas(4)  float ambientStrength;    // Legacy ambient strength
+    alignas(4)  float specularStrength;   // Legacy specular strength
+    alignas(4)  int shininess;            // Legacy shininess
     alignas(4)  int lightingMode;         // Current lighting mode
+    alignas(4)  int useMaterialProperties; // 0 = use legacy, 1 = use material properties
 };
 
 
@@ -303,6 +312,14 @@ struct Data
     std::vector<VkDeviceMemory> vkLightingUniformBuffersMemory;
     std::vector<void *> vkLightingUniformBuffersMapped;
     std::vector<VkDescriptorSet> vkLightingDescriptorSets;
+    
+    // Lighting Maps system additions
+    VkDescriptorSetLayout vkLightingMapsDescriptorSetLayout;
+    VkDescriptorPool vkLightingMapsDescriptorPool;
+    VkPipeline vkLightingMapsGraphicsPipeline;
+    VkPipelineLayout vkLightingMapsPipelineLayout;
+    VkShaderModule vkLightingMapsVertShaderModule;
+    VkShaderModule vkLightingMapsFragShaderModule;
     
     uint32_t vkCurrentFrame = 0;
     uint32 vkCurrentImageIndex;
