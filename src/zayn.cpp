@@ -54,7 +54,7 @@ void InitZayn(Zayn* zaynMem) {
 
     InitTime(&zaynMem->time);
     InitInputManager(&zaynMem->inputManager, &zaynMem->permanentMemory);
-    InitWindow(&zaynMem->windowManager, &zaynMem->inputManager, V2(600, 400), "mac zayn");
+    InitWindow(&zaynMem->windowManager, &zaynMem->inputManager, V2(1000, 800), "mac zayn");
 
     InitCamera(&zaynMem->camera, zaynMem->windowManager.glfwWindow, &zaynMem->inputManager);
 

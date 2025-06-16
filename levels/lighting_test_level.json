@@ -1,0 +1,46 @@
+{
+  "levelName": "Lighting Test Level",
+  "version": "1.0",
+  "entities": [
+    {
+      "type": "Wall",
+      "id": 0,
+      "position": [0.0, 0.0, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "materialName": "Lighting - Coral"
+    },
+    {
+      "type": "Wall", 
+      "id": 1,
+      "position": [5.0, 0.0, 0.0],
+      "rotation": [0.0, 45.0, 0.0],
+      "scale": [1.0, 2.0, 1.0],
+      "materialName": "Lighting - Red"
+    },
+    {
+      "type": "Wall", 
+      "id": 2,
+      "position": [-5.0, 0.0, 0.0],
+      "rotation": [0.0, -45.0, 0.0],
+      "scale": [1.0, 1.5, 1.0],
+      "materialName": "Lighting - Green"
+    },
+    {
+      "type": "Wall", 
+      "id": 3,
+      "position": [0.0, 0.0, 5.0],
+      "rotation": [0.0, 90.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "materialName": "Lighting - Blue"
+    },
+    {
+      "type": "Wall", 
+      "id": 4,
+      "position": [0.0, 0.0, -5.0],
+      "rotation": [0.0, -90.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "materialName": "Lighting - Yellow"
+    }
+  ]
+}

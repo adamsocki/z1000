@@ -187,30 +187,32 @@ struct SwapChainSupportDetails {
 	std::vector<VkPresentModeKHR> presentModes;
 };
 
-struct ModelPushConstant
-{
-	mat4 model_1;
+
+enum LightingMode {
+    LIGHTING_MODE_SIMPLE_COLOR,      //  lightColor * objectColor
+    LIGHTING_MODE_AMBIENT_ONLY,      //  Ambient lighting
+    LIGHTING_MODE_DIFFUSE,          //  Ambient + Diffuse
+    LIGHTING_MODE_SPECULAR,         //  Ambient + Diffuse + Specular
+    LIGHTING_MODE_COUNT
 };
 
-struct LightingPushConstant
-{
-	alignas(16) glm::vec3 lightColor;    // Color of the light source
-	alignas(16) glm::vec3 objectColor;   // Base color of the object
+struct LightingUniformBuffer {
+    alignas(16) glm::vec3 lightColor;     // Color of the light source
+    alignas(16) glm::vec3 objectColor;    // Base color of the object
+    alignas(16) glm::vec3 lightPos;       // Position of the light in world space
+    alignas(16) glm::vec3 viewPos;        // Camera position for specular calculation
+    alignas(4)  float ambientStrength;    // Ambient lighting strength (usually 0.1)
+    alignas(4)  float specularStrength;   // Specular lighting strength (usually 0.5)
+    alignas(4)  int shininess;            // Specular shininess (32, 64, 128, etc.)
+    alignas(4)  int lightingMode;         // Current lighting mode
 };
+
 
 struct UniformBufferObject
     {
         alignas(16) glm::mat4 view;
         alignas(16) glm::mat4 proj;
     };
-
-// Simple lighting uniform buffer following LearnOpenGL Colors tutorial
-struct LightingUniformBuffer
-    {
-        alignas(16) glm::vec3 lightColor;    // Color of the light source
-        alignas(16) glm::vec3 objectColor;   // Base color of the object (will be multiplied by light)
-    };
-
 
 struct Data
 {

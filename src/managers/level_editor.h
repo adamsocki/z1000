@@ -41,4 +41,11 @@ struct LevelEditor {
     
     // Light creation settings
     vec3 lightColorForCreation;
+
+    // Lighting controls
+    LightingMode currentLightingMode;
+    float ambientStrength;
+    float specularStrength;
+    int shininess;
+    bool showLightingDebug;
 };

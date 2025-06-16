@@ -1512,8 +1512,6 @@ void InitRender_Vulkan(Renderer* renderer, WindowManager* window)
     CreateDescriptorSetLayout(renderer, &renderer->data.vkDescriptorSetLayout, true);
     CreateDescriptorPool(renderer, &renderer->data.vkDescriptorPool, true);
 
-    CreatePushConstant<ModelPushConstant>(renderer);
-
     CreateGraphicsPipeline(renderer, &renderer->data.vkGraphicsPipeline, GetShaderPath("vkShader_3d_vert.spv"), GetShaderPath("vkShader_3d_frag.spv"), renderer->data.vkPushConstantRanges, &renderer->data.vkDescriptorSetLayout, &renderer->data.vkPipelineLayout);
 
     // Create lighting pipeline following LearnOpenGL Colors tutorial

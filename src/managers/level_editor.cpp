@@ -28,6 +28,13 @@ void InitLevelEditor(LevelEditor* editor) {
     
     // Initialize light creation settings
     editor->lightColorForCreation = V3(1, 1, 1);  // Default white light
+
+    // Initialize lighting controls with LearnOpenGL default values
+    editor->currentLightingMode = LIGHTING_MODE_SIMPLE_COLOR;
+    editor->ambientStrength = 0.1f;
+    editor->specularStrength = 0.5f;
+    editor->shininess = 32;
+    editor->showLightingDebug = false;
 }
 
 void SelectEntity(LevelEditor* editor, EntityHandle handle, EntityType type) {

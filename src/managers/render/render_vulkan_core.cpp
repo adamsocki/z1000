@@ -104,6 +104,9 @@ void UpdateUniformBuffer(uint32_t currentImage, Renderer* renderer, Camera* cam)
 void UpdateLightingUniformBuffer(uint32_t currentImage, Renderer* renderer, Zayn* zaynMem)
 {
     LightingUniformBuffer lightingUbo = {};
+
+    vec3 lightPosition = V3(0, 5, 0); // Default light position
+    vec3 lightColor = V3(1.0f, 1.0f, 1.0f); // Default white light
     
     // Set default lighting values following LearnOpenGL Colors tutorial
     lightingUbo.lightColor = glm::vec3(1.0f, 1.0f, 1.0f);    // White light
@@ -114,14 +117,21 @@ void UpdateLightingUniformBuffer(uint32_t currentImage, Renderer* renderer, Zayn
         EntityHandle lightHandle = zaynMem->gameData.lightSources[0];
         LightSourceEntity* light = (LightSourceEntity*)GetEntity(&zaynMem->entityFactory, lightHandle);
         if (light) {
-            lightingUbo.lightColor = glm::vec3(light->color.x, light->color.y, light->color.z);
+            lightPosition = light->position;
+            lightColor = light->color;
+            // lightingUbo.lightColor = glm::vec3(light->color.x, light->color.y, light->color.z);
         }
     }
     
-    // Note: Object color will be set per-material during rendering
-    // The uniform buffer provides default values, but lighting materials
-    // can override the objectColor based on their material properties
-    
+    lightingUbo.lightColor = glm::vec3(lightColor.x, lightColor.y, lightColor.z);
+    lightingUbo.objectColor = glm::vec3(1.0f, 0.5f, 0.31f); // Default coral
+    lightingUbo.lightPos = glm::vec3(lightPosition.x, lightPosition.y, lightPosition.z);
+    lightingUbo.viewPos = glm::vec3(zaynMem->camera.position.x, zaynMem->camera.position.y, zaynMem->camera.position.z);
+    lightingUbo.ambientStrength = zaynMem->levelEditor.ambientStrength;
+    lightingUbo.specularStrength = zaynMem->levelEditor.specularStrength;
+    lightingUbo.shininess = zaynMem->levelEditor.shininess;
+    lightingUbo.lightingMode = zaynMem->levelEditor.currentLightingMode;
+
     memcpy(renderer->data.vkLightingUniformBuffersMapped[currentImage], &lightingUbo, sizeof(lightingUbo));
 }
 
@@ -260,21 +270,26 @@ void AddMeshInstance(Zayn* zaynMem, Mesh* mesh, Material* material, EntityHandle
 
 void RenderMaterialBatches(Zayn* zaynMem, VkCommandBuffer commandBuffer) {
     uint32_t frameIndex = zaynMem->renderer.data.vkCurrentFrame % MAX_FRAMES_IN_FLIGHT;
-    
+
+    vec3 lightPosition = V3(0, 5, 0);
+    vec3 lightColor = V3(1.0f, 1.0f, 1.0f);
+
+
     // Get current light color for lighting materials
     vec3 globalLightColor = V3(1.0f, 1.0f, 1.0f);
     if (zaynMem->gameData.lightSources.count > 0) {
         EntityHandle lightHandle = zaynMem->gameData.lightSources[0];
         LightSourceEntity* light = (LightSourceEntity*)GetEntity(&zaynMem->entityFactory, lightHandle);
         if (light) {
-            globalLightColor = light->color;
+            lightPosition = light->position;
+            lightColor = light->color;
         }
     }
     
     // Render each material batch
     for (auto& [key, batch] : zaynMem->materialFactory.materialMeshBatches) {
         if (batch->instanceCount == 0) continue;
-        
+
         // Update instance buffer if needed
         if (batch->instanceDataRequiresGpuUpdate) {
             for (uint32_t i = 0; i < batch->instanceCount; i++) {
@@ -282,21 +297,49 @@ void RenderMaterialBatches(Zayn* zaynMem, VkCommandBuffer commandBuffer) {
             }
             batch->instanceDataRequiresGpuUpdate = false;
         }
-        
+
         Material* material = batch->material;
         Mesh* mesh = batch->mesh;
-        
+
         // Bind appropriate pipeline and update uniforms based on material type
         if (material->type == MATERIAL_LIGHTING) {
             // Update this material's specific uniform buffer
             LightingUniformBuffer lightingUbo = {};
-            lightingUbo.lightColor = glm::vec3(globalLightColor.x, globalLightColor.y, globalLightColor.z);
+            vec3 lightPosition = V3(0, 5, 0);
+            vec3 lightColor = V3(1.0f, 1.0f, 1.0f);
+
+            if (zaynMem->gameData.lightSources.count > 0) {
+                EntityHandle lightHandle = zaynMem->gameData.lightSources[0];
+                LightSourceEntity* light = (LightSourceEntity*)GetEntity(&zaynMem->entityFactory, lightHandle);
+                if (light) {
+                    lightPosition = light->position;
+                    lightColor = light->color;
+                }
+            }
+
+            // Fill uniform buffer with all necessary data
+            lightingUbo.lightColor = glm::vec3(lightColor.x, lightColor.y, lightColor.z);
             lightingUbo.objectColor = glm::vec3(material->objectColor.x, material->objectColor.y, material->objectColor.z);
-            memcpy(material->lightingUniformBuffersMapped[frameIndex], &lightingUbo, sizeof(lightingUbo));
+            lightingUbo.lightPos = glm::vec3(lightPosition.x, lightPosition.y, lightPosition.z);
+            lightingUbo.viewPos = glm::vec3(zaynMem->camera.position.x, zaynMem->camera.position.y, zaynMem->camera.position.z);
+            lightingUbo.ambientStrength = zaynMem->levelEditor.ambientStrength;
+            lightingUbo.specularStrength = zaynMem->levelEditor.specularStrength;
+            lightingUbo.shininess = zaynMem->levelEditor.shininess;
+            lightingUbo.lightingMode = zaynMem->levelEditor.currentLightingMode;
             
+            // Debug: Print lighting mode info occasionally
+            static int debugCounter = 0;
+            if (debugCounter++ % 120 == 0) {
+                printf("Lighting Mode: %d, Ambient: %.2f, Specular: %.2f, Shininess: %d\n", 
+                       lightingUbo.lightingMode, lightingUbo.ambientStrength, 
+                       lightingUbo.specularStrength, lightingUbo.shininess);
+            }
+            
+            memcpy(material->lightingUniformBuffersMapped[frameIndex], &lightingUbo, sizeof(lightingUbo));
+
             vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, zaynMem->renderer.data.vkLightingGraphicsPipeline);
-            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, 
-                                  zaynMem->renderer.data.vkLightingPipelineLayout, 0, 1, 
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                  zaynMem->renderer.data.vkLightingPipelineLayout, 0, 1,
                                   &material->descriptorSets[frameIndex], 0, nullptr);
         } else {
             vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, zaynMem->renderer.data.vkGraphicsPipeline);
@@ -933,6 +976,94 @@ void UpdateMyImgui(Zayn* zaynMem, LevelEditor* editor, Camera* camera, Renderer*
         ImGui::Text("Walls: %d", zaynMem->gameData.walls.count);
         ImGui::Text("Light Sources: %d", zaynMem->gameData.lightSources.count);
     }
+    ImGui::End();
+
+    // Lighting Controls window
+    bool showLightingControls = true;
+    if (ImGui::Begin("Lighting Controls", &showLightingControls)) {
+        ImGui::Text("Vulkan Application of LearnOpenGL Basic Lighting Tutorial");
+        ImGui::Separator();
+    }
+    const char* lightingModes[] = {
+        "Simple (Color * Light)",
+        "Ambient Only",
+        "Ambient + Diffuse",
+        "Ambient + Diffuse + Specular (Phong)"
+    };
+
+    ImGui::Text("Lighting Mode:");
+    if (ImGui::Combo("##LightingMode", (int*)&editor->currentLightingMode, lightingModes, LIGHTING_MODE_COUNT)) {
+        // Mode changed - you could add specific presets here
+        switch(editor->currentLightingMode) {
+            case LIGHTING_MODE_AMBIENT_ONLY:
+                editor->ambientStrength = 0.1f;
+                break;
+            case LIGHTING_MODE_DIFFUSE:
+                editor->ambientStrength = 0.1f;
+                break;
+            case LIGHTING_MODE_SPECULAR:
+                editor->ambientStrength = 0.1f;
+                editor->specularStrength = 0.5f;
+                editor->shininess = 32;
+                break;
+
+            case LIGHTING_MODE_SIMPLE_COLOR:
+                // e
+                break;
+            case LIGHTING_MODE_COUNT:
+                break;
+
+        }
+    }
+
+    ImGui::Separator();
+    ImGui::Text("Lighting Parameters:");
+
+    // Show controls based on current mode
+    if (editor->currentLightingMode >= LIGHTING_MODE_AMBIENT_ONLY) {
+        ImGui::SliderFloat("Ambient Strength", &editor->ambientStrength, 0.0f, 1.0f);
+    }
+    if (editor->currentLightingMode >= LIGHTING_MODE_SPECULAR) {
+        ImGui::SliderFloat("Specular Strength", &editor->specularStrength, 0.0f, 1.0f);
+
+        // Shininess with common values from LearnOpenGL
+        if (ImGui::Button("Shininess: 8")) editor->shininess = 8;
+        ImGui::SameLine();
+        if (ImGui::Button("16")) editor->shininess = 16;
+        ImGui::SameLine();
+        if (ImGui::Button("32")) editor->shininess = 32;
+        ImGui::SameLine();
+        if (ImGui::Button("64")) editor->shininess = 64;
+        ImGui::SameLine();
+        if (ImGui::Button("128")) editor->shininess = 128;
+
+        ImGui::SliderInt("Custom Shininess", &editor->shininess, 1, 256);
+    }
+
+    ImGui::Separator();
+    ImGui::Text("Debug Information:");
+    ImGui::Checkbox("Show Normals", &editor->showLightingDebug);
+
+    // Show current light position
+    if (zaynMem->gameData.lightSources.count > 0) {
+        EntityHandle lightHandle = zaynMem->gameData.lightSources[0];
+        LightSourceEntity* light = (LightSourceEntity*)GetEntity(&zaynMem->entityFactory, lightHandle);
+        if (light) {
+            ImGui::Text("Light Position: (%.1f, %.1f, %.1f)",
+                       light->position.x, light->position.y, light->position.z);
+            ImGui::Text("Light Color: (%.2f, %.2f, %.2f)",
+                       light->color.x, light->color.y, light->color.z);
+        }
+    } else {
+        ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "No light source in scene!");
+    }
+
+    ImGui::Text("Camera Position: (%.1f, %.1f, %.1f)",
+               camera->position.x, camera->position.y, camera->position.z);
+
+
+
+
     ImGui::End();
 
     ImGui::Render();
